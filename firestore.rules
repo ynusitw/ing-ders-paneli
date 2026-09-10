@@ -1,0 +1,20 @@
+rules_version = '2';
+
+// Uygulamanın verisi API route'ları (Admin SDK, bu kurallardan etkilenmez)
+// üzerinden okunup yazılıyor. İstemci (tarayıcı) Firestore'a doğrudan sadece
+// video odası sinyalleşmesi için erişir; bu yüzden varsayılan her şeyi kapatıp
+// sadece rooms/{roomId}'yi, dersin gerçek katılımcılarına açıyoruz.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      allow read, write: if request.auth != null &&
+        exists(/databases/$(database)/documents/lessons/$(roomId)) &&
+        (get(/databases/$(database)/documents/lessons/$(roomId)).data.teacherId == request.auth.uid ||
+         get(/databases/$(database)/documents/lessons/$(roomId)).data.studentId == request.auth.uid);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
