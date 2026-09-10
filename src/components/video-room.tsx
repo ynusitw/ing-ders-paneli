@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import Peer, { type Instance as PeerInstance, type SignalData } from "simple-peer";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { clientDb } from "@/lib/firebase-client";
+import { ICE_SERVERS } from "@/lib/ice-servers";
 
 type Props = {
   roomId: string;
@@ -23,20 +24,31 @@ type ChatMessage = { from: "me" | "peer"; text: string; ts: number };
 
 export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHref }: Props) {
   const router = useRouter();
+  // Kamera küçük kutusu - paylaşım durumundan bağımsız, her zaman yerel kamerayı gösterir.
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  // Karşı taraftan gelen tek akış: normalde kamerası, o ekran paylaşıyorsa ekranı
+  // (aynı video elemanına şeffafça yansır, ekstra sinyalleşme gerekmez).
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  // Ben ekran paylaşırken karşı tarafın kamerasını küçük kutuda göstermek için ikinci kopya.
+  const remoteThumbRef = useRef<HTMLVideoElement>(null);
+  // Ben ekran paylaşırken kendi paylaştığım ekranı ana alanda göstermek için.
+  const localScreenVideoRef = useRef<HTMLVideoElement>(null);
+
   const peerRef = useRef<PeerInstance | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const cameraVideoTrackRef = useRef<MediaStreamTrack | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const [status, setStatus] = useState<"connecting" | "waiting" | "connected" | "ended" | "error">(
     "connecting"
   );
+  const [dataReady, setDataReady] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [sharingScreen, setSharingScreen] = useState(false);
+  const [remoteSharing, setRemoteSharing] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [unread, setUnread] = useState(0);
@@ -65,7 +77,12 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       }
       setStatus("waiting");
 
-      const peer = new Peer({ initiator: isInitiator, trickle: false, stream: localStream });
+      const peer = new Peer({
+        initiator: isInitiator,
+        trickle: false,
+        stream: localStream,
+        config: { iceServers: ICE_SERVERS },
+      });
       peerRef.current = peer;
 
       peer.on("signal", (data: SignalData) => {
@@ -73,11 +90,13 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       });
 
       peer.on("stream", (remoteStream) => {
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = remoteStream;
-        }
+        remoteStreamRef.current = remoteStream;
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
+        if (remoteThumbRef.current) remoteThumbRef.current.srcObject = remoteStream;
         setStatus("connected");
       });
+
+      peer.on("connect", () => setDataReady(true));
 
       peer.on("data", (raw) => {
         try {
@@ -88,9 +107,11 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
               if (!open) setUnread((n) => n + 1);
               return open;
             });
+          } else if (message.type === "screen-share") {
+            setRemoteSharing(message.active);
           }
         } catch {
-          // sohbet dışı/bozuk veri - yok say
+          // sohbet/durum dışı bozuk veri - yok say
         }
       });
 
@@ -126,6 +147,14 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Ben ekran paylaşımına başlayınca karşı tarafın kamerası küçük kutuya taşınır;
+  // o kutu ancak bu anda DOM'a girdiği için akışı burada (yeniden) bağlıyoruz.
+  useEffect(() => {
+    if (sharingScreen && remoteThumbRef.current && remoteStreamRef.current) {
+      remoteThumbRef.current.srcObject = remoteStreamRef.current;
+    }
+  }, [sharingScreen]);
+
   function toggleMic() {
     cameraStreamRef.current?.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
@@ -140,6 +169,15 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     setCamOn((on) => !on);
   }
 
+  function sendScreenShareStatus(active: boolean) {
+    if (!dataReady || !peerRef.current) return;
+    try {
+      peerRef.current.send(JSON.stringify({ type: "screen-share", active }));
+    } catch {
+      // veri kanalı hazır değil - karşı taraf yine de video akışından anlar
+    }
+  }
+
   async function toggleScreenShare() {
     const peer = peerRef.current;
     const cameraTrack = cameraVideoTrackRef.current;
@@ -150,8 +188,8 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       if (screenTrack) peer.replaceTrack(screenTrack, cameraTrack, cameraStreamRef.current!);
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
-      if (localVideoRef.current) localVideoRef.current.srcObject = cameraStreamRef.current;
       setSharingScreen(false);
+      sendScreenShareStatus(false);
       return;
     }
 
@@ -160,24 +198,25 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       const screenTrack = screenStream.getVideoTracks()[0];
       screenStreamRef.current = screenStream;
       peer.replaceTrack(cameraTrack, screenTrack, cameraStreamRef.current!);
-      if (localVideoRef.current) localVideoRef.current.srcObject = screenStream;
+      if (localScreenVideoRef.current) localScreenVideoRef.current.srcObject = screenStream;
       screenTrack.onended = () => toggleScreenShare();
       setSharingScreen(true);
+      sendScreenShareStatus(true);
     } catch {
-      // kullanıcı ekran paylaşımı izni vermedi
+      // kullanıcı ekran paylaşımı izni vermedi / seçim yapmadı
     }
   }
 
   function sendChatMessage() {
     const text = chatInput.trim();
-    if (!text || !peerRef.current) return;
+    if (!text || !peerRef.current || !dataReady) return;
     const ts = Date.now();
     try {
       peerRef.current.send(JSON.stringify({ type: "chat", text, ts }));
       setMessages((prev) => [...prev, { from: "me", text, ts }]);
       setChatInput("");
     } catch {
-      // veri kanalı henüz hazır değil
+      // veri kanalı koptu
     }
   }
 
@@ -190,7 +229,7 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
 
   const statusLabel = {
     connecting: "Kameraya bağlanılıyor...",
-    waiting: "Diğer katılımcı bekleniyor...",
+    waiting: "Diğer katılımcı bekleniyor... (bağlantı bazen 10-20 saniye sürebilir)",
     connected: "Bağlandı",
     ended: "Görüşme sona erdi",
     error: "Kamera/mikrofon erişimi alınamadı veya bağlantı koptu.",
@@ -200,30 +239,62 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     <main className="flex h-screen flex-col bg-gray-900 text-white">
       <div className="flex flex-1 overflow-hidden">
         <div className="relative flex-1 bg-black">
-          <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-contain" />
-          {status !== "connected" && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-300">
+          {/* Ana alan: ben ekran paylaşıyorsam kendi ekranım, değilsem karşı taraf (kamerası ya da o paylaşıyorsa ekranı) */}
+          <video
+            ref={localScreenVideoRef}
+            autoPlay
+            playsInline
+            className={`h-full w-full object-contain ${sharingScreen ? "" : "hidden"}`}
+          />
+          <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            className={`h-full w-full object-contain ${sharingScreen ? "hidden" : ""}`}
+          />
+
+          {status !== "connected" && !sharingScreen && (
+            <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-gray-300">
               {statusLabel}
             </div>
           )}
           {status === "connected" && (
             <span className="absolute left-3 top-3 rounded bg-black/60 px-2 py-1 text-sm">
-              {remoteName}
+              {sharingScreen
+                ? "Ekranını paylaşıyorsun"
+                : remoteSharing
+                  ? `${remoteName} · ekranını paylaşıyor`
+                  : remoteName}
             </span>
           )}
 
-          <div className="absolute bottom-3 right-3 w-40 overflow-hidden rounded border border-gray-700 sm:w-56">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full bg-gray-800 object-cover"
-            />
-            <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs">
-              Sen{localName ? ` (${localName})` : ""}
-              {!micOn && " · 🔇"}
-            </span>
+          <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
+            {sharingScreen && (
+              <div className="w-40 overflow-hidden rounded border border-gray-700 sm:w-56">
+                <video
+                  ref={remoteThumbRef}
+                  autoPlay
+                  playsInline
+                  className="w-full bg-gray-800 object-cover"
+                />
+                <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs">
+                  {remoteName}
+                </span>
+              </div>
+            )}
+            <div className="relative w-40 overflow-hidden rounded border border-gray-700 sm:w-56">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full bg-gray-800 object-cover"
+              />
+              <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs">
+                Sen{localName ? ` (${localName})` : ""}
+                {!micOn && " · 🔇"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -253,18 +324,28 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
                 e.preventDefault();
                 sendChatMessage();
               }}
-              className="flex gap-2 border-t border-gray-700 p-2"
+              className="flex flex-col gap-1 border-t border-gray-700 p-2"
             >
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Mesaj yaz..."
-                className="flex-1 rounded bg-gray-700 px-2 py-1 text-sm outline-none"
-              />
-              <button type="submit" className="rounded bg-blue-600 px-3 py-1 text-sm">
-                Gönder
-              </button>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Mesaj yaz..."
+                  disabled={!dataReady}
+                  className="flex-1 rounded bg-gray-700 px-2 py-1 text-sm outline-none disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!dataReady}
+                  className="rounded bg-blue-600 px-3 py-1 text-sm disabled:opacity-50"
+                >
+                  Gönder
+                </button>
+              </div>
+              {!dataReady && (
+                <p className="text-xs text-gray-400">Bağlantı kurulunca mesaj gönderebilirsin.</p>
+              )}
             </form>
           </div>
         )}
