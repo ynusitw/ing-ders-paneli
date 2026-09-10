@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Peer, { type Instance as PeerInstance, type SignalData } from "simple-peer";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, setDoc } from "firebase/firestore";
 import { clientDb } from "@/lib/firebase-client";
 import { ICE_SERVERS } from "@/lib/ice-servers";
 
@@ -44,6 +44,7 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
   const [status, setStatus] = useState<"connecting" | "waiting" | "connected" | "ended" | "error">(
     "connecting"
   );
+  const [iceState, setIceState] = useState<string>("");
   const [dataReady, setDataReady] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
@@ -79,14 +80,32 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
 
       const peer = new Peer({
         initiator: isInitiator,
-        trickle: false,
+        trickle: true,
         stream: localStream,
         config: { iceServers: ICE_SERVERS },
       });
       peerRef.current = peer;
 
+      // Diagnostik: ICE bağlantı durumunu ekranda göstermek için (bağlantı
+      // sorunlarında "bekleniyor" yazısının nedenini anlayabilmek için önemli).
+      // simple-peer bunu resmi olarak dışa açmıyor, o yüzden dahili _pc'ye erişiyoruz.
+      const pc = (peer as unknown as { _pc?: RTCPeerConnection })._pc;
+      if (pc) {
+        pc.oniceconnectionstatechange = () => setIceState(pc.iceConnectionState);
+      }
+
+      // Trickle ICE: SDP (offer/answer) rooms/{roomId} dokümanına, her ICE adayı ise
+      // kendi tarafımızın alt koleksiyonuna tek tek yazılır - TÜM adaylar toplanana
+      // kadar beklemek yerine bulundukça gönderilir (yavaş/TURN gereken ağlarda kritik).
+      const myCandidatesCol = collection(roomRef, isInitiator ? "callerCandidates" : "calleeCandidates");
+      const theirCandidatesCol = collection(roomRef, isInitiator ? "calleeCandidates" : "callerCandidates");
+
       peer.on("signal", (data: SignalData) => {
-        setDoc(roomRef, isInitiator ? { offer: data } : { answer: data }, { merge: true });
+        if (data.type === "offer" || data.type === "answer") {
+          setDoc(roomRef, isInitiator ? { offer: data } : { answer: data }, { merge: true });
+        } else {
+          addDoc(myCandidatesCol, data as object);
+        }
       });
 
       peer.on("stream", (remoteStream) => {
@@ -118,18 +137,29 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       peer.on("close", () => setStatus("ended"));
       peer.on("error", () => setStatus("error"));
 
-      let appliedRemoteSignal = false;
-      const unsubscribe = onSnapshot(roomRef, (snap) => {
+      let appliedRemoteSdp = false;
+      const unsubscribeSdp = onSnapshot(roomRef, (snap) => {
         const data = snap.data();
-        if (appliedRemoteSignal) return;
+        if (appliedRemoteSdp) return;
         const remoteSignal = isInitiator ? data?.answer : data?.offer;
         if (remoteSignal) {
-          appliedRemoteSignal = true;
+          appliedRemoteSdp = true;
           peer.signal(remoteSignal);
         }
       });
 
-      return unsubscribe;
+      const unsubscribeCandidates = onSnapshot(theirCandidatesCol, (snap) => {
+        snap.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            peer.signal(change.doc.data() as SignalData);
+          }
+        });
+      });
+
+      return () => {
+        unsubscribeSdp();
+        unsubscribeCandidates();
+      };
     }
 
     const unsubscribePromise = start();
@@ -254,8 +284,9 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
           />
 
           {status !== "connected" && !sharingScreen && (
-            <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-gray-300">
-              {statusLabel}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center text-sm text-gray-300">
+              <span>{statusLabel}</span>
+              {iceState && <span className="text-xs text-gray-500">bağlantı durumu: {iceState}</span>}
             </div>
           )}
           {status === "connected" && (
