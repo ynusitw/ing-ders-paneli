@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL, formatRange } from "@/lib/status";
+import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL, formatRange, isRoomJoinable } from "@/lib/status";
+import { LessonCountdown } from "@/components/lesson-countdown";
 
 type LessonRequest = {
   id: string;
@@ -28,7 +28,7 @@ export default function StudentDashboard() {
       .then((res) => res.json())
       .then((lessons: Lesson[]) => {
         const upcoming = lessons
-          .filter((l) => l.status === "SCHEDULED" && new Date(l.startTime) > new Date())
+          .filter((l) => l.status === "SCHEDULED" && isRoomJoinable(l))
           .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
         setNext(upcoming[0] ?? null);
       });
@@ -40,10 +40,13 @@ export default function StudentDashboard() {
 
       <h2 className="mb-2 text-sm font-medium text-gray-600">Yaklaşan dersin</h2>
       {next ? (
-        <Link href={`/room/${next.id}`} className="mb-6 block rounded border p-4 hover:bg-gray-50">
-          <span className="font-medium">{next.teacherName}</span>
-          <p className="text-sm text-gray-600">{formatRange(next.startTime, next.endTime)}</p>
-        </Link>
+        <div className="mb-6 flex items-center justify-between rounded border p-4">
+          <div>
+            <span className="font-medium">{next.teacherName}</span>
+            <p className="text-sm text-gray-600">{formatRange(next.startTime, next.endTime)}</p>
+          </div>
+          <LessonCountdown lessonId={next.id} startTime={next.startTime} endTime={next.endTime} />
+        </div>
       ) : (
         <p className="mb-6 text-sm text-gray-500">Yaklaşan dersin yok.</p>
       )}

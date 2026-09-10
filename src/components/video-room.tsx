@@ -28,11 +28,89 @@ type Props = {
   localName: string;
   remoteName: string;
   leaveHref: string;
+  startTime: string;
+  endTime: string;
 };
 
 type ChatMessage = { from: "me" | "peer"; text: string; ts: number };
+type ReactionKind = "hand" | "confused";
 
-export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHref }: Props) {
+// Alt kontrol çubuğu: ikon + üzerine gelince beliren küçük etiket (native title
+// yerine, tutarlı stil ve anında görünüm için).
+function IconButton({
+  onClick,
+  active,
+  danger,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  active?: boolean;
+  danger?: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="group relative flex flex-col items-center">
+      <button
+        onClick={onClick}
+        aria-label={label}
+        className={`flex h-11 w-11 items-center justify-center rounded-full text-lg transition-colors ${
+          danger
+            ? "bg-red-600 hover:bg-red-500"
+            : active
+              ? "bg-blue-600 hover:bg-blue-500"
+              : "bg-gray-700 hover:bg-gray-600"
+        }`}
+      >
+        {children}
+      </button>
+      <span className="pointer-events-none absolute bottom-full mb-2 whitespace-nowrap rounded bg-black/80 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// Ders bitişine kalan süreyi (ders geçtiyse ek süreyi) canlı gösteren sayaç.
+function LessonTimer({ endTime }: { endTime: string }) {
+  const [now, setNow] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (now === null) return null;
+
+  const endMs = new Date(endTime).getTime();
+  const diffMs = endMs - now;
+  const isOver = diffMs <= 0;
+  const totalSeconds = Math.floor(Math.abs(diffMs) / 1000);
+  const d = Math.floor(totalSeconds / 86400);
+  const h = Math.floor((totalSeconds % 86400) / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  const label =
+    d > 0
+      ? `${d} gün ${h} sa`
+      : h > 0
+        ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+        : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+
+  return (
+    <span
+      className={`rounded-full px-3 py-1.5 text-sm font-medium tabular-nums ${
+        isOver ? "bg-red-600" : diffMs < 5 * 60 * 1000 ? "bg-yellow-600" : "bg-gray-700"
+      }`}
+    >
+      {isOver ? `+${label}` : label}
+    </span>
+  );
+}
+
+export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHref, endTime }: Props) {
   const router = useRouter();
   // Kamera küçük kutusu - paylaşım durumundan bağımsız, her zaman yerel kamerayı gösterir.
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -68,6 +146,9 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
   const [chatInput, setChatInput] = useState("");
   const [waitingStudent, setWaitingStudent] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [incomingReaction, setIncomingReaction] = useState<{ kind: ReactionKind; id: number } | null>(
+    null
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -194,6 +275,8 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
             });
           } else if (message.type === "screen-share") {
             setRemoteSharing(message.active);
+          } else if (message.type === "reaction") {
+            setIncomingReaction({ kind: message.kind, id: Date.now() });
           }
         } catch {
           // sohbet/durum dışı bozuk veri - yok say
@@ -274,6 +357,22 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     setDoc(roomRef, { waitingRoom: { requested: false, admitted: true } }, { merge: true }).catch(
       (err) => console.error("[room] öğrenci kabul edilemedi", err)
     );
+  }
+
+  // Öğrencinin gönderdiği "el kaldır"/"anlamadım" bildirimi birkaç saniye sonra kendiliğinden kaybolur.
+  useEffect(() => {
+    if (!incomingReaction) return;
+    const timer = setTimeout(() => setIncomingReaction(null), 5000);
+    return () => clearTimeout(timer);
+  }, [incomingReaction]);
+
+  function sendReaction(kind: ReactionKind) {
+    if (!dataReady || !peerRef.current) return;
+    try {
+      peerRef.current.send(JSON.stringify({ type: "reaction", kind }));
+    } catch {
+      // veri kanalı hazır değil
+    }
   }
 
   // Kamera açıldığında (baştan ya da sonradan) küçük kutu ancak bu anda DOM'a
@@ -458,6 +557,13 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
               </button>
             </div>
           )}
+          {incomingReaction && (
+            <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 animate-bounce rounded-full bg-yellow-500 px-4 py-2 text-sm font-medium text-black shadow-lg">
+              {incomingReaction.kind === "hand"
+                ? `🖐️ ${remoteName} elini kaldırdı`
+                : `🤔 ${remoteName} anlamadı`}
+            </div>
+          )}
           {/* Ana alan: ben ekran paylaşıyorsam kendi ekranım, değilsem karşı taraf (kamerası ya da o paylaşıyorsa ekranı) */}
           <video
             ref={localScreenVideoRef}
@@ -599,50 +705,71 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-3 border-t border-gray-700 bg-gray-900 p-3">
-        {hasMedia ? (
-          <>
-            <button
-              onClick={toggleMic}
-              className={`rounded-full px-4 py-2 text-sm ${micOn ? "bg-gray-700" : "bg-red-600"}`}
-            >
-              {micOn ? "🎤 Mikrofon" : "🔇 Mikrofon kapalı"}
-            </button>
-            <button
-              onClick={toggleCam}
-              className={`rounded-full px-4 py-2 text-sm ${camOn ? "bg-gray-700" : "bg-red-600"}`}
-            >
-              {camOn ? "📷 Kamera" : "🚫 Kamera kapalı"}
-            </button>
-          </>
-        ) : (
-          <button onClick={enableMedia} className="rounded-full bg-blue-600 px-4 py-2 text-sm">
-            🎥 Kamera ve Mikrofonu Aç
-          </button>
-        )}
-        <button
-          onClick={toggleScreenShare}
-          className={`rounded-full px-4 py-2 text-sm ${sharingScreen ? "bg-blue-600" : "bg-gray-700"}`}
-        >
-          🖥️ {sharingScreen ? "Paylaşımı durdur" : "Ekranı paylaş"}
-        </button>
-        <button
-          onClick={() => {
-            setChatOpen((open) => !open);
-            setUnread(0);
-          }}
-          className="relative rounded-full bg-gray-700 px-4 py-2 text-sm"
-        >
-          💬 Sohbet
-          {unread > 0 && (
-            <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 text-xs">
-              {unread}
-            </span>
+      <div className="grid grid-cols-3 items-center gap-2 border-t border-gray-700 bg-gray-900 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {hasMedia ? (
+            <>
+              <IconButton
+                onClick={toggleMic}
+                danger={!micOn}
+                label={micOn ? "Mikrofonu kapat" : "Mikrofonu aç"}
+              >
+                {micOn ? "🎤" : "🔇"}
+              </IconButton>
+              <IconButton
+                onClick={toggleCam}
+                danger={!camOn}
+                label={camOn ? "Kamerayı kapat" : "Kamerayı aç"}
+              >
+                {camOn ? "📷" : "🚫"}
+              </IconButton>
+            </>
+          ) : (
+            <IconButton onClick={enableMedia} active label="Kamera ve mikrofonu aç">
+              🎥
+            </IconButton>
           )}
-        </button>
-        <button onClick={leaveCall} className="rounded-full bg-red-600 px-4 py-2 text-sm">
-          📞 Ayrıl
-        </button>
+          <IconButton onClick={toggleScreenShare} active={sharingScreen} label="Ekranı paylaş">
+            🖥️
+          </IconButton>
+        </div>
+
+        <div className="flex justify-center">
+          <LessonTimer endTime={endTime} />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {!isInitiator && (
+            <>
+              <IconButton onClick={() => sendReaction("hand")} label="El kaldır">
+                🖐️
+              </IconButton>
+              <IconButton onClick={() => sendReaction("confused")} label="Anlamadım">
+                🤔
+              </IconButton>
+            </>
+          )}
+          <div className="relative">
+            <IconButton
+              onClick={() => {
+                setChatOpen((open) => !open);
+                setUnread(0);
+              }}
+              active={chatOpen}
+              label="Sohbet"
+            >
+              💬
+            </IconButton>
+            {unread > 0 && (
+              <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 text-xs">
+                {unread}
+              </span>
+            )}
+          </div>
+          <IconButton onClick={leaveCall} danger label="Ayrıl">
+            📞
+          </IconButton>
+        </div>
       </div>
     </main>
   );

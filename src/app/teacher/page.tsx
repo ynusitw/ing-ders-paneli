@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { formatRange } from "@/lib/status";
+import { formatRange, isRoomJoinable } from "@/lib/status";
+import { LessonCountdown } from "@/components/lesson-countdown";
 
 type LessonRequest = { status: "PENDING" | "APPROVED" | "REJECTED" };
 type Lesson = { id: string; studentName: string; startTime: string; endTime: string; status: string };
@@ -22,9 +23,7 @@ export default function TeacherDashboard() {
       .then((res) => res.json())
       .then((lessons: Lesson[]) =>
         setUpcoming(
-          lessons
-            .filter((l) => l.status === "SCHEDULED" && new Date(l.startTime) > new Date())
-            .slice(0, 3)
+          lessons.filter((l) => l.status === "SCHEDULED" && isRoomJoinable(l)).slice(0, 3)
         )
       );
   }, []);
@@ -45,9 +44,12 @@ export default function TeacherDashboard() {
       {upcoming.length === 0 && <p className="text-sm text-gray-500">Yaklaşan ders yok.</p>}
       <ul className="flex flex-col gap-2">
         {upcoming.map((lesson) => (
-          <li key={lesson.id} className="rounded border p-3">
-            <span className="font-medium">{lesson.studentName}</span>
-            <p className="text-sm text-gray-600">{formatRange(lesson.startTime, lesson.endTime)}</p>
+          <li key={lesson.id} className="flex items-center justify-between rounded border p-3">
+            <div>
+              <span className="font-medium">{lesson.studentName}</span>
+              <p className="text-sm text-gray-600">{formatRange(lesson.startTime, lesson.endTime)}</p>
+            </div>
+            <LessonCountdown lessonId={lesson.id} startTime={lesson.startTime} endTime={lesson.endTime} />
           </li>
         ))}
       </ul>

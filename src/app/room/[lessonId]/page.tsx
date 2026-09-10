@@ -38,6 +38,7 @@ export default async function RoomPage({ params }: { params: { lessonId: string 
       remoteName={isTeacher ? lesson.studentName : lesson.teacherName}
       leaveHref={isTeacher ? "/teacher/lessons" : "/student/my-lessons"}
       startTime={lesson.startTime}
+      endTime={lesson.endTime}
     />
   );
 }

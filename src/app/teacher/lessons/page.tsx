@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { LESSON_STATUS_CLASS, LESSON_STATUS_LABEL, formatRange, isRoomJoinable } from "@/lib/status";
+import { LessonCountdown } from "@/components/lesson-countdown";
 
 type Lesson = {
   id: string;
@@ -40,12 +40,11 @@ export default function TeacherLessonsPage() {
               </span>
             </div>
             {lesson.status === "SCHEDULED" && isRoomJoinable(lesson) && (
-              <Link
-                href={`/room/${lesson.id}`}
-                className="rounded bg-black px-3 py-1 text-sm text-white"
-              >
-                Odaya Gir
-              </Link>
+              <LessonCountdown
+                lessonId={lesson.id}
+                startTime={lesson.startTime}
+                endTime={lesson.endTime}
+              />
             )}
           </li>
         ))}

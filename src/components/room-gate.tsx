@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { clientDb } from "@/lib/firebase-client";
 import { VideoRoom } from "@/components/video-room";
+import { randomIdiom } from "@/lib/idioms";
 
 type Props = {
   roomId: string;
@@ -16,9 +17,18 @@ type Props = {
   remoteName: string;
   leaveHref: string;
   startTime: string;
+  endTime: string;
 };
 
-export function RoomGate({ roomId, isTeacher, localName, remoteName, leaveHref, startTime }: Props) {
+export function RoomGate({
+  roomId,
+  isTeacher,
+  localName,
+  remoteName,
+  leaveHref,
+  startTime,
+  endTime,
+}: Props) {
   const startMs = new Date(startTime).getTime();
   // Date.now() sunucu render'ı ile istemci hydration'ı arasında farklı değer
   // üretir (React hydration mismatch hatası verir) - bu yüzden "now" başlangıçta
@@ -26,6 +36,9 @@ export function RoomGate({ roomId, isTeacher, localName, remoteName, leaveHref, 
   // render sunucu ve istemcide birebir aynı (nötr) çıktıyı üretir.
   const [now, setNow] = useState<number | null>(null);
   const [admitted, setAdmitted] = useState(false);
+  // Bekleme ekranında gösterilecek günün deyimi - sadece bu ekran mount olduğunda
+  // (yani zaten client-only render edildiğinde) seçildiği için hydration riski yok.
+  const [idiom] = useState(() => randomIdiom());
 
   const isEarly = now !== null && !isTeacher && now < startMs;
 
@@ -71,14 +84,22 @@ export function RoomGate({ roomId, isTeacher, localName, remoteName, leaveHref, 
   if (isEarly && !admitted) {
     const start = new Date(startTime);
     return (
-      <main className="flex h-screen flex-col items-center justify-center gap-3 bg-gray-900 px-6 text-center text-white">
+      <main className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-900 px-6 text-center text-white">
         <p className="text-lg font-medium">Ders henüz başlamadı</p>
         <p className="text-sm text-gray-400">Başlangıç saati: {start.toLocaleString("tr-TR")}</p>
         <p className="max-w-sm text-sm text-gray-400">
           Katılma isteğin {remoteName} öğretmenine gönderildi. Kabul edilince ya da ders saati gelince
           otomatik olarak derse gireceksin.
         </p>
-        <div className="mt-2 h-6 w-6 animate-spin rounded-full border-2 border-gray-600 border-t-white" />
+
+        <div className="mt-2 w-full max-w-sm rounded-lg border border-gray-700 bg-gray-800 p-4 text-left">
+          <p className="mb-1 text-xs uppercase tracking-wide text-gray-500">Günün deyimi</p>
+          <p className="text-lg font-semibold">{idiom.phrase}</p>
+          <p className="mt-1 text-sm text-gray-300">{idiom.meaning}</p>
+          <p className="mt-2 text-sm italic text-gray-400">"{idiom.example}"</p>
+        </div>
+
+        <div className="mt-1 h-6 w-6 animate-spin rounded-full border-2 border-gray-600 border-t-white" />
       </main>
     );
   }
@@ -90,6 +111,8 @@ export function RoomGate({ roomId, isTeacher, localName, remoteName, leaveHref, 
       localName={localName}
       remoteName={remoteName}
       leaveHref={leaveHref}
+      startTime={startTime}
+      endTime={endTime}
     />
   );
 }
