@@ -101,10 +101,20 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       const theirCandidatesCol = collection(roomRef, isInitiator ? "calleeCandidates" : "callerCandidates");
 
       peer.on("signal", (data: SignalData) => {
+        // RTCIceCandidate/RTCSessionDescription tarayıcı sınıf örnekleri olabilir;
+        // Firestore düz obje bekler (sınıf örneklerini reddeder/hatalı yazar).
+        // JSON round-trip, bu nesnelerin standart toJSON()'ını kullanarak güvenli
+        // düz objeye çevirir - bu adım atlanınca ICE adayları karşı tarafa hiç
+        // ulaşmıyor ve bağlantı "disconnected"da takılı kalıyordu.
+        const safeData = JSON.parse(JSON.stringify(data));
         if (data.type === "offer" || data.type === "answer") {
-          setDoc(roomRef, isInitiator ? { offer: data } : { answer: data }, { merge: true });
+          setDoc(roomRef, isInitiator ? { offer: safeData } : { answer: safeData }, { merge: true }).catch(
+            (err) => console.error("[room] sdp yazılamadı", err)
+          );
         } else {
-          addDoc(myCandidatesCol, data as object);
+          addDoc(myCandidatesCol, safeData).catch((err) =>
+            console.error("[room] ice adayı yazılamadı", err)
+          );
         }
       });
 
@@ -135,26 +145,37 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       });
 
       peer.on("close", () => setStatus("ended"));
-      peer.on("error", () => setStatus("error"));
+      peer.on("error", (err) => {
+        console.error("[room] peer hatası", err);
+        setStatus("error");
+      });
 
       let appliedRemoteSdp = false;
-      const unsubscribeSdp = onSnapshot(roomRef, (snap) => {
-        const data = snap.data();
-        if (appliedRemoteSdp) return;
-        const remoteSignal = isInitiator ? data?.answer : data?.offer;
-        if (remoteSignal) {
-          appliedRemoteSdp = true;
-          peer.signal(remoteSignal);
-        }
-      });
-
-      const unsubscribeCandidates = onSnapshot(theirCandidatesCol, (snap) => {
-        snap.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            peer.signal(change.doc.data() as SignalData);
+      const unsubscribeSdp = onSnapshot(
+        roomRef,
+        (snap) => {
+          const data = snap.data();
+          if (appliedRemoteSdp) return;
+          const remoteSignal = isInitiator ? data?.answer : data?.offer;
+          if (remoteSignal) {
+            appliedRemoteSdp = true;
+            peer.signal(remoteSignal);
           }
-        });
-      });
+        },
+        (err) => console.error("[room] sdp dinleme hatası", err)
+      );
+
+      const unsubscribeCandidates = onSnapshot(
+        theirCandidatesCol,
+        (snap) => {
+          snap.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              peer.signal(change.doc.data() as SignalData);
+            }
+          });
+        },
+        (err) => console.error("[room] ice adayı dinleme hatası", err)
+      );
 
       return () => {
         unsubscribeSdp();
