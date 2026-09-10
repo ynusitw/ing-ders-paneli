@@ -20,10 +20,18 @@ type Props = {
 
 export function RoomGate({ roomId, isTeacher, localName, remoteName, leaveHref, startTime }: Props) {
   const startMs = new Date(startTime).getTime();
-  const [now, setNow] = useState(() => Date.now());
+  // Date.now() sunucu render'ı ile istemci hydration'ı arasında farklı değer
+  // üretir (React hydration mismatch hatası verir) - bu yüzden "now" başlangıçta
+  // null kalır, gerçek zaman sadece mount sonrası (istemcide) belirlenir; ilk
+  // render sunucu ve istemcide birebir aynı (nötr) çıktıyı üretir.
+  const [now, setNow] = useState<number | null>(null);
   const [admitted, setAdmitted] = useState(false);
 
-  const isEarly = !isTeacher && now < startMs;
+  const isEarly = now !== null && !isTeacher && now < startMs;
+
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
 
   useEffect(() => {
     if (!isEarly) return;
@@ -49,6 +57,16 @@ export function RoomGate({ roomId, isTeacher, localName, remoteName, leaveHref, 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, isEarly]);
+
+  if (now === null) {
+    // Sunucu/istemci hydration'ı bitene kadar (yukarıdaki not) nötr bir bekleme
+    // ekranı - erken mi değil mi bilinmeden ne VideoRoom'u ne bekleme ekranını gösteririz.
+    return (
+      <main className="flex h-screen items-center justify-center bg-gray-900">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-600 border-t-white" />
+      </main>
+    );
+  }
 
   if (isEarly && !admitted) {
     const start = new Date(startTime);

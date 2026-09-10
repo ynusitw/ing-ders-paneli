@@ -94,17 +94,21 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
 
       // Bu oda daha önce kullanılmışsa (önceki görüşmeden kalan offer/answer/ICE
       // adayları) Firestore'da hâlâ duruyor olabilir - temizlenmezse yeni bağlantı
-      // eski/geçersiz adaylarla karışıp "checking"te takılı kalır ve kopar. Kim
-      // önce girerse girsin sorun olmasın diye HER İKİ taraf da girişte temizler
-      // (silme işlemi zaten var-olmayanı silmeye çalışsa bile hata vermez).
-      try {
-        for (const name of ["callerCandidates", "calleeCandidates"]) {
-          const snap = await getDocs(collection(roomRef, name));
-          await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+      // eski/geçersiz adaylarla karışıp "checking"te takılı kalır ve kopar.
+      // SADECE öğretmen (initiator) temizler, çünkü her zaman o tazeler/başlatır.
+      // Öğrenci temizlemez: erken katılım + "İçeri Al" akışında öğrenci dakikalarca
+      // sonra kabul edilebiliyor - o an temizlerse öğretmenin o sırada zaten
+      // yazmış olduğu GEÇERLİ/güncel teklif ve adayları silip bağlantıyı bozardı.
+      if (isInitiator) {
+        try {
+          for (const name of ["callerCandidates", "calleeCandidates"]) {
+            const snap = await getDocs(collection(roomRef, name));
+            await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+          }
+          await setDoc(roomRef, { offer: deleteField(), answer: deleteField() }, { merge: true });
+        } catch (err) {
+          console.error("[room] eski sinyalleşme verisi temizlenemedi", err);
         }
-        await setDoc(roomRef, { offer: deleteField(), answer: deleteField() }, { merge: true });
-      } catch (err) {
-        console.error("[room] eski sinyalleşme verisi temizlenemedi", err);
       }
       if (cancelled) return;
 
