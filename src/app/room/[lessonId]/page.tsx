@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
 import { isRoomJoinable } from "@/lib/status";
-import { VideoRoom } from "@/components/video-room";
+import { RoomGate } from "@/components/room-gate";
 
 // Sunucu tarafında: kullanıcı bu dersin gerçek katılımcısı mı diye doğrular,
 // ardından WebRTC işini yapan client component'e initiator rolünü ve isimleri devreder.
@@ -31,12 +31,13 @@ export default async function RoomPage({ params }: { params: { lessonId: string 
   const isTeacher = user.role === "TEACHER";
 
   return (
-    <VideoRoom
+    <RoomGate
       roomId={params.lessonId}
-      isInitiator={isTeacher}
+      isTeacher={isTeacher}
       localName={isTeacher ? lesson.teacherName : lesson.studentName}
       remoteName={isTeacher ? lesson.studentName : lesson.teacherName}
       leaveHref={isTeacher ? "/teacher/lessons" : "/student/my-lessons"}
+      startTime={lesson.startTime}
     />
   );
 }

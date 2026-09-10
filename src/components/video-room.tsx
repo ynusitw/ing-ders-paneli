@@ -57,6 +57,7 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [unread, setUnread] = useState(0);
   const [chatInput, setChatInput] = useState("");
+  const [waitingStudent, setWaitingStudent] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +209,25 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Öğretmen için: ders saati gelmeden önce girmeye çalışan öğrenci varsa
+  // (bkz. RoomGate) burada haber verilir, "İçeri Al" ile kabul edilir.
+  useEffect(() => {
+    if (!isInitiator) return;
+    const roomRef = doc(clientDb, "rooms", roomId);
+    const unsubscribe = onSnapshot(roomRef, (snap) => {
+      const waitingRoom = snap.data()?.waitingRoom;
+      setWaitingStudent(!!waitingRoom?.requested && !waitingRoom?.admitted);
+    });
+    return unsubscribe;
+  }, [roomId, isInitiator]);
+
+  function admitStudent() {
+    const roomRef = doc(clientDb, "rooms", roomId);
+    setDoc(roomRef, { waitingRoom: { requested: false, admitted: true } }, { merge: true }).catch(
+      (err) => console.error("[room] öğrenci kabul edilemedi", err)
+    );
+  }
+
   // Kamera açıldığında (baştan ya da sonradan) küçük kutu ancak bu anda DOM'a
   // girdiği/güncellendiği için akışı burada bağlıyoruz.
   useEffect(() => {
@@ -336,6 +356,17 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     <main className="flex h-screen flex-col bg-gray-900 text-white">
       <div className="flex flex-1 overflow-hidden">
         <div className="relative flex-1 bg-black">
+          {waitingStudent && (
+            <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full bg-blue-600 px-4 py-2 text-sm shadow-lg">
+              <span>🎓 {remoteName} bekleme odasında katılmak istiyor</span>
+              <button
+                onClick={admitStudent}
+                className="rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-700"
+              >
+                İçeri Al
+              </button>
+            </div>
+          )}
           {/* Ana alan: ben ekran paylaşıyorsam kendi ekranım, değilsem karşı taraf (kamerası ya da o paylaşıyorsa ekranı) */}
           <video
             ref={localScreenVideoRef}
