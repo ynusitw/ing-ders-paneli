@@ -58,6 +58,7 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
   const [unread, setUnread] = useState(0);
   const [chatInput, setChatInput] = useState("");
   const [waitingStudent, setWaitingStudent] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -324,6 +325,49 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     }
   }
 
+  // Tarayıcının Fullscreen API'si farklı önekler/yöntemlerle destekleniyor;
+  // iOS Safari genel elemanları tam ekrana almayı desteklemiyor, sadece
+  // <video>'ya özel webkitEnterFullscreen() ile kendi native oynatıcısını açıyor.
+  useEffect(() => {
+    function handleChange() {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      setIsFullscreen(!!(document.fullscreenElement || doc.webkitFullscreenElement));
+    }
+    document.addEventListener("fullscreenchange", handleChange);
+    document.addEventListener("webkitfullscreenchange", handleChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleChange);
+      document.removeEventListener("webkitfullscreenchange", handleChange);
+    };
+  }, []);
+
+  function toggleFullscreen() {
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element | null;
+      webkitExitFullscreen?: () => void;
+    };
+
+    if (doc.fullscreenElement || doc.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (doc.webkitExitFullscreen) doc.webkitExitFullscreen();
+      return;
+    }
+
+    const target = sharingScreen ? localScreenVideoRef.current : remoteVideoRef.current;
+    if (!target) return;
+    const el = target as HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void;
+      webkitRequestFullscreen?: () => void;
+    };
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    } else if (el.webkitEnterFullscreen) {
+      el.webkitEnterFullscreen();
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    }
+  }
+
   function sendChatMessage() {
     const text = chatInput.trim();
     if (!text || !peerRef.current || !dataReady) return;
@@ -400,6 +444,14 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
                   ? `${remoteName} · ekranını paylaşıyor`
                   : remoteName}
             </span>
+          )}
+          {(sharingScreen || remoteSharing) && (
+            <button
+              onClick={toggleFullscreen}
+              className="absolute right-3 top-3 z-10 rounded-full bg-black/60 px-3 py-1.5 text-sm"
+            >
+              {isFullscreen ? "⤢ Tam ekrandan çık" : "⛶ Tam ekran"}
+            </button>
           )}
 
           <div className="absolute bottom-3 right-3 flex flex-col items-end gap-2">
