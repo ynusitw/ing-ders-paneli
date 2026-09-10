@@ -1,3 +1,72 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Uygulama genelinde (login, panel sayfaları, formlar, rozetler) hep aynı sınırlı
+ * Tailwind gri/renk paleti kullanıldığı için dark mode'u her dosyayı tek tek
+ * değiştirmek yerine burada merkezi olarak tanımlıyoruz.
+ */
+.dark,
+.dark *,
+.dark *::before,
+.dark *::after {
+  border-color: rgb(55 65 81); /* gray-700 */
+}
+
+.dark .text-gray-500 {
+  color: rgb(156 163 175); /* gray-400 */
+}
+.dark .text-gray-600 {
+  color: rgb(156 163 175);
+}
+.dark .text-gray-700 {
+  color: rgb(209 213 219); /* gray-300 */
+}
+.dark .bg-gray-50 {
+  background-color: rgb(31 41 55); /* gray-800 */
+}
+.dark .bg-gray-200 {
+  background-color: rgb(55 65 81); /* gray-700 */
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: rgb(31 41 55);
+  color: rgb(243 244 246);
+}
+
+.dark .bg-yellow-100 {
+  background-color: rgb(113 63 18 / 0.4);
+}
+.dark .text-yellow-800 {
+  color: rgb(253 224 71);
+}
+.dark .bg-green-100 {
+  background-color: rgb(22 101 52 / 0.4);
+}
+.dark .text-green-800 {
+  color: rgb(134 239 172);
+}
+.dark .text-green-700 {
+  color: rgb(74 222 128);
+}
+.dark .bg-red-100 {
+  background-color: rgb(127 29 29 / 0.4);
+}
+.dark .text-red-800 {
+  color: rgb(252 165 165);
+}
+.dark .text-red-600 {
+  color: rgb(248 113 113);
+}
+.dark .bg-blue-100 {
+  background-color: rgb(30 58 138 / 0.4);
+}
+.dark .text-blue-800 {
+  color: rgb(147 197 253);
+}
+.dark .text-blue-600 {
+  color: rgb(96 165 250);
+}
