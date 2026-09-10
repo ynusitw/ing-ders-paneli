@@ -9,7 +9,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Peer, { type Instance as PeerInstance, type SignalData } from "simple-peer";
-import { addDoc, collection, doc, onSnapshot, setDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  deleteField,
+  doc,
+  getDocs,
+  onSnapshot,
+  setDoc,
+} from "firebase/firestore";
 import { clientDb } from "@/lib/firebase-client";
 import { ICE_SERVERS } from "@/lib/ice-servers";
 
@@ -82,6 +91,23 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
         cameraVideoTrackRef.current = localStream.getVideoTracks()[0] ?? null;
         setHasMedia(true);
       }
+
+      // Bu oda daha önce kullanılmışsa (önceki görüşmeden kalan offer/answer/ICE
+      // adayları) Firestore'da hâlâ duruyor olabilir - temizlenmezse yeni bağlantı
+      // eski/geçersiz adaylarla karışıp "checking"te takılı kalır ve kopar. Kim
+      // önce girerse girsin sorun olmasın diye HER İKİ taraf da girişte temizler
+      // (silme işlemi zaten var-olmayanı silmeye çalışsa bile hata vermez).
+      try {
+        for (const name of ["callerCandidates", "calleeCandidates"]) {
+          const snap = await getDocs(collection(roomRef, name));
+          await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+        }
+        await setDoc(roomRef, { offer: deleteField(), answer: deleteField() }, { merge: true });
+      } catch (err) {
+        console.error("[room] eski sinyalleşme verisi temizlenemedi", err);
+      }
+      if (cancelled) return;
+
       setStatus("waiting");
 
       const peer = new Peer({
@@ -156,7 +182,10 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
         }
       });
 
-      peer.on("close", () => setStatus("ended"));
+      // "error" event'inden hemen sonra genelde "close" da tetiklenir (simple-peer
+      // hata alınca kendini destroy eder) - "ended" bu durumda daha bilgilendirici
+      // olan hata mesajının üzerine yazmasın.
+      peer.on("close", () => setStatus((s) => (s === "error" ? s : "ended")));
       peer.on("error", (err) => {
         console.error("[room] peer hatası", err);
         setStatus("error");
