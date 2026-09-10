@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/student/request-lesson", label: "Ders Talep Et" },
   { href: "/student/my-requests", label: "Taleplerim" },
   { href: "/student/my-lessons", label: "Derslerim" },
+  { href: "/student/flashcards", label: "Kelime Kartlarım" },
 ];
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {

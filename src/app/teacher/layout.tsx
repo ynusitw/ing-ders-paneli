@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/teacher/requests", label: "Talepler" },
   { href: "/teacher/lessons", label: "Dersler" },
   { href: "/teacher/students", label: "Öğrenciler" },
+  { href: "/teacher/flashcards", label: "Kelime Kartları" },
 ];
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
