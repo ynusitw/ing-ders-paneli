@@ -125,9 +125,18 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       // Diagnostik: ICE bağlantı durumunu ekranda göstermek için (bağlantı
       // sorunlarında "bekleniyor" yazısının nedenini anlayabilmek için önemli).
       // simple-peer bunu resmi olarak dışa açmıyor, o yüzden dahili _pc'ye erişiyoruz.
+      // ICE gerçekten bağlandığında genel durumu da burada işaretliyoruz - simple-peer'ın
+      // kendi 'connect' event'i (veri kanalı açılışı) bazen gecikip hiç tetiklenmeyebiliyor,
+      // ICE durumu daha güvenilir bir sinyal.
       const pc = (peer as unknown as { _pc?: RTCPeerConnection })._pc;
       if (pc) {
-        pc.oniceconnectionstatechange = () => setIceState(pc.iceConnectionState);
+        pc.oniceconnectionstatechange = () => {
+          setIceState(pc.iceConnectionState);
+          if (pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed") {
+            setStatus((s) => (s === "ended" || s === "error" ? s : "connected"));
+            setDataReady(true);
+          }
+        };
       }
 
       // Trickle ICE: SDP (offer/answer/renegotiate) rooms/{roomId} dokümanına, her ICE
@@ -170,6 +179,11 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       });
 
       peer.on("data", (raw) => {
+        // Veri gelmesi, kanalın fiilen açık olduğunun kesin kanıtıdır - simple-peer'ın
+        // 'connect' event'i bazen (gözlemlendi) gecikip hiç tetiklenmeyebiliyor;
+        // burada da ayrıca işaretlemek arayüzün gerçek durumla senkron kalmasını sağlar.
+        setDataReady(true);
+        setStatus((s) => (s === "ended" || s === "error" ? s : "connected"));
         try {
           const message = JSON.parse(raw.toString());
           if (message.type === "chat") {
