@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AvailabilityBuilder } from "@/components/availability-builder";
 
 type Slot = {
   id: string;
@@ -11,34 +12,39 @@ type Slot = {
 
 const STATUS_LABEL: Record<Slot["status"], string> = {
   OPEN: "Müsait",
-  REQUESTED: "Talep bekliyor",
+  REQUESTED: "Talep var",
   BOOKED: "Dolu",
 };
 
-const STATUS_CLASS: Record<Slot["status"], string> = {
-  OPEN: "bg-green-100 text-green-800",
-  REQUESTED: "bg-yellow-100 text-yellow-800",
-  BOOKED: "bg-gray-200 text-gray-700",
+// Boş (OPEN) slotlar dikkat çekici bir renkte ve tıklanabilir (silmek için);
+// dolu/talep bekleyen slotlar soluk ve pasif görünür.
+const STATUS_CHIP_CLASS: Record<Slot["status"], string> = {
+  OPEN: "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer",
+  REQUESTED: "bg-amber-400 text-amber-950 cursor-default",
+  BOOKED: "bg-gray-200 text-gray-500 cursor-default",
 };
 
-function toLocalInputValue(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
-    date.getHours()
-  )}:${pad(date.getMinutes())}`;
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDayHeader(iso: string) {
+  return new Date(iso).toLocaleDateString("tr-TR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 }
 
 export default function AvailabilityPage() {
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const loadSlots = useCallback(async (uid: string) => {
     const res = await fetch(`/api/slots?teacherId=${uid}`);
     if (res.ok) setSlots(await res.json());
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -51,109 +57,70 @@ export default function AvailabilityPage() {
     })();
   }, [loadSlots]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (!startTime || !endTime) return;
-    if (new Date(endTime) <= new Date(startTime)) {
-      setError("Bitiş saati başlangıçtan sonra olmalı.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/slots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          startTime: new Date(startTime).toISOString(),
-          endTime: new Date(endTime).toISOString(),
-        }),
-      });
-      if (!res.ok) throw new Error();
-      setStartTime("");
-      setEndTime("");
-      if (teacherId) await loadSlots(teacherId);
-    } catch {
-      setError("Slot oluşturulamadı.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleDelete(id: string) {
     const res = await fetch(`/api/slots/${id}`, { method: "DELETE" });
     if (res.ok && teacherId) await loadSlots(teacherId);
   }
 
+  // Toplu oluşturucunun aynı saati iki kez eklememesi için mevcut başlangıç zamanları.
+  const existingStartTimes = useMemo(() => new Set(slots.map((s) => s.startTime)), [slots]);
+
+  const groupedByDay = useMemo(() => {
+    const sorted = [...slots].sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+    const map = new Map<string, Slot[]>();
+    for (const slot of sorted) {
+      const dayKey = slot.startTime.slice(0, 10);
+      if (!map.has(dayKey)) map.set(dayKey, []);
+      map.get(dayKey)!.push(slot);
+    }
+    return Array.from(map.entries());
+  }, [slots]);
+
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-4 text-xl font-semibold">Müsaitlik Yönetimi</h1>
+    <main className="mx-auto max-w-3xl p-8">
+      <h1 className="mb-6 text-xl font-semibold">Müsaitlik Yönetimi</h1>
 
-      <form onSubmit={handleSubmit} className="mb-8 flex flex-wrap items-end gap-3">
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600">Başlangıç</label>
-          <input
-            type="datetime-local"
-            value={startTime}
-            min={toLocalInputValue(new Date())}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="rounded border p-2"
-            required
-          />
-        </div>
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-600">Bitiş</label>
-          <input
-            type="datetime-local"
-            value={endTime}
-            min={startTime || toLocalInputValue(new Date())}
-            onChange={(e) => setEndTime(e.target.value)}
-            className="rounded border p-2"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black p-2 px-4 text-white disabled:opacity-50"
-        >
-          {loading ? "Ekleniyor..." : "Slot Ekle"}
-        </button>
-      </form>
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {teacherId && (
+        <AvailabilityBuilder
+          existingStartTimes={existingStartTimes}
+          onCreated={() => loadSlots(teacherId)}
+        />
+      )}
 
-      <ul className="flex flex-col gap-2">
-        {slots.map((slot) => (
-          <li
-            key={slot.id}
-            className="flex items-center justify-between rounded border p-3"
-          >
-            <span>
-              {new Date(slot.startTime).toLocaleString("tr-TR")} —{" "}
-              {new Date(slot.endTime).toLocaleTimeString("tr-TR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-            <div className="flex items-center gap-3">
-              <span className={`rounded px-2 py-1 text-xs ${STATUS_CLASS[slot.status]}`}>
-                {STATUS_LABEL[slot.status]}
-              </span>
-              {slot.status === "OPEN" && (
+      {loaded && groupedByDay.length === 0 && (
+        <p className="text-sm text-gray-500">
+          Henüz müsaitlik eklemedin. Yukarıdaki araçla haftalık müsaitliğini oluşturabilirsin.
+        </p>
+      )}
+
+      <div className="flex flex-col gap-6">
+        {groupedByDay.map(([dayKey, daySlots]) => (
+          <div key={dayKey}>
+            <h2 className="mb-2 text-sm font-semibold capitalize text-gray-700 dark:text-gray-300">
+              {formatDayHeader(daySlots[0].startTime)}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {daySlots.map((slot) => (
                 <button
+                  key={slot.id}
+                  type="button"
+                  disabled={slot.status !== "OPEN"}
                   onClick={() => handleDelete(slot.id)}
-                  className="text-sm text-red-600 hover:underline"
+                  title={slot.status === "OPEN" ? "Silmek için tıkla" : STATUS_LABEL[slot.status]}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${STATUS_CHIP_CLASS[slot.status]}`}
                 >
-                  Sil
+                  {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
+                  {slot.status !== "OPEN" && (
+                    <span className="ml-1.5 text-xs opacity-75">· {STATUS_LABEL[slot.status]}</span>
+                  )}
                 </button>
-              )}
+              ))}
             </div>
-          </li>
+          </div>
         ))}
-        {slots.length === 0 && (
-          <p className="text-sm text-gray-500">Henüz müsaitlik eklemedin.</p>
-        )}
-      </ul>
+      </div>
     </main>
   );
 }
