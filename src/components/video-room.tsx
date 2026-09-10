@@ -2,9 +2,10 @@
 
 // Gömülü 1:1 video görüşme odası. Harici platforma (Meet/Zoom) yönlendirme yok:
 // kamera/mikrofon burada açılır, WebRTC bağlantısı Firestore'daki rooms/{roomId}
-// dokümanı üzerinden (offer/answer alışverişi) kurulur ve akış doğrudan burada oynatılır.
-// Sohbet mesajları ayrı bir sunucu gerektirmeden aynı WebRTC bağlantısının veri
-// kanalı (simple-peer'ın otomatik oluşturduğu data channel) üzerinden gönderilir.
+// dokümanı üzerinden (offer/answer + trickle ICE adayları) kurulur ve akış doğrudan
+// burada oynatılır. Kamera/mikrofon izni verilmese/reddedilse bile odaya girilir;
+// bağlantı (ve sohbet) kurulur, kullanıcı istediği an kamerasını/mikrofonunu
+// sonradan açabilir (bu da WebRTC renegotiation ile aktarılır).
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Peer, { type Instance as PeerInstance, type SignalData } from "simple-peer";
@@ -46,6 +47,8 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
   );
   const [iceState, setIceState] = useState<string>("");
   const [dataReady, setDataReady] = useState(false);
+  const [hasMedia, setHasMedia] = useState(false);
+  const [remoteHasVideo, setRemoteHasVideo] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [sharingScreen, setSharingScreen] = useState(false);
@@ -60,28 +63,29 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     const roomRef = doc(clientDb, "rooms", roomId);
 
     async function start() {
-      let localStream: MediaStream;
+      // Kamera/mikrofon reddedilse ya da hiç cihaz olmasa bile odaya girilir:
+      // bağlantı ve sohbet medya olmadan da kurulur, medya sonradan eklenebilir.
+      let localStream: MediaStream | null = null;
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       } catch {
-        setStatus("error");
-        return;
+        // izin verilmedi / cihaz yok - sorun değil, aşağıda medyasız devam edilir
       }
       if (cancelled) {
-        localStream.getTracks().forEach((t) => t.stop());
+        localStream?.getTracks().forEach((t) => t.stop());
         return;
       }
-      cameraStreamRef.current = localStream;
-      cameraVideoTrackRef.current = localStream.getVideoTracks()[0] ?? null;
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
+      if (localStream) {
+        cameraStreamRef.current = localStream;
+        cameraVideoTrackRef.current = localStream.getVideoTracks()[0] ?? null;
+        setHasMedia(true);
       }
       setStatus("waiting");
 
       const peer = new Peer({
         initiator: isInitiator,
         trickle: true,
-        stream: localStream,
+        ...(localStream ? { stream: localStream } : {}),
         config: { iceServers: ICE_SERVERS },
       });
       peerRef.current = peer;
@@ -94,18 +98,16 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
         pc.oniceconnectionstatechange = () => setIceState(pc.iceConnectionState);
       }
 
-      // Trickle ICE: SDP (offer/answer) rooms/{roomId} dokümanına, her ICE adayı ise
-      // kendi tarafımızın alt koleksiyonuna tek tek yazılır - TÜM adaylar toplanana
-      // kadar beklemek yerine bulundukça gönderilir (yavaş/TURN gereken ağlarda kritik).
+      // Trickle ICE: SDP (offer/answer/renegotiate) rooms/{roomId} dokümanına, her ICE
+      // adayı ise kendi tarafımızın alt koleksiyonuna tek tek yazılır - TÜM adaylar
+      // toplanana kadar beklemek yerine bulundukça gönderilir (TURN gereken ağlarda kritik).
       const myCandidatesCol = collection(roomRef, isInitiator ? "callerCandidates" : "calleeCandidates");
       const theirCandidatesCol = collection(roomRef, isInitiator ? "calleeCandidates" : "callerCandidates");
 
       peer.on("signal", (data: SignalData) => {
         // RTCIceCandidate/RTCSessionDescription tarayıcı sınıf örnekleri olabilir;
-        // Firestore düz obje bekler (sınıf örneklerini reddeder/hatalı yazar).
-        // JSON round-trip, bu nesnelerin standart toJSON()'ını kullanarak güvenli
-        // düz objeye çevirir - bu adım atlanınca ICE adayları karşı tarafa hiç
-        // ulaşmıyor ve bağlantı "disconnected"da takılı kalıyordu.
+        // Firestore düz obje bekler. JSON round-trip, bu nesnelerin standart
+        // toJSON()'ını kullanarak güvenli düz objeye çevirir.
         const safeData = JSON.parse(JSON.stringify(data));
         if (data.type === "offer" || data.type === "answer") {
           setDoc(roomRef, isInitiator ? { offer: safeData } : { answer: safeData }, { merge: true }).catch(
@@ -118,14 +120,22 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
         }
       });
 
-      peer.on("stream", (remoteStream) => {
+      function handleRemoteStream(remoteStream: MediaStream) {
         remoteStreamRef.current = remoteStream;
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream;
         if (remoteThumbRef.current) remoteThumbRef.current.srcObject = remoteStream;
+        setRemoteHasVideo(remoteStream.getVideoTracks().length > 0);
+        setStatus((s) => (s === "ended" || s === "error" ? s : "connected"));
+      }
+
+      peer.on("stream", handleRemoteStream);
+      peer.on("track", (_track, stream) => handleRemoteStream(stream));
+
+      // Veri kanalı açıldığında (medya olsun olmasın) bağlantı gerçekten kurulmuş demektir.
+      peer.on("connect", () => {
+        setDataReady(true);
         setStatus("connected");
       });
-
-      peer.on("connect", () => setDataReady(true));
 
       peer.on("data", (raw) => {
         try {
@@ -150,17 +160,17 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
         setStatus("error");
       });
 
-      let appliedRemoteSdp = false;
+      let lastAppliedSdp: string | null = null;
       const unsubscribeSdp = onSnapshot(
         roomRef,
         (snap) => {
           const data = snap.data();
-          if (appliedRemoteSdp) return;
           const remoteSignal = isInitiator ? data?.answer : data?.offer;
-          if (remoteSignal) {
-            appliedRemoteSdp = true;
-            peer.signal(remoteSignal);
-          }
+          if (!remoteSignal) return;
+          const serialized = JSON.stringify(remoteSignal);
+          if (serialized === lastAppliedSdp) return; // aynı sinyali tekrar uygulama
+          lastAppliedSdp = serialized;
+          peer.signal(remoteSignal);
         },
         (err) => console.error("[room] sdp dinleme hatası", err)
       );
@@ -198,6 +208,14 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Kamera açıldığında (baştan ya da sonradan) küçük kutu ancak bu anda DOM'a
+  // girdiği/güncellendiği için akışı burada bağlıyoruz.
+  useEffect(() => {
+    if (hasMedia && localVideoRef.current && cameraStreamRef.current) {
+      localVideoRef.current.srcObject = cameraStreamRef.current;
+    }
+  }, [hasMedia]);
+
   // Ben ekran paylaşımına başlayınca karşı tarafın kamerası küçük kutuya taşınır;
   // o kutu ancak bu anda DOM'a girdiği için akışı burada (yeniden) bağlıyoruz.
   useEffect(() => {
@@ -205,6 +223,24 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       remoteThumbRef.current.srcObject = remoteStreamRef.current;
     }
   }, [sharingScreen]);
+
+  // Kamera/mikrofonu odaya girdikten sonra açmak için - reddedilmiş/atlanmış izni
+  // tekrar ister, kabul edilirse mevcut bağlantıya track ekler (renegotiation).
+  async function enableMedia() {
+    const peer = peerRef.current;
+    if (!peer || hasMedia) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      cameraStreamRef.current = stream;
+      cameraVideoTrackRef.current = stream.getVideoTracks()[0] ?? null;
+      stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+      setHasMedia(true);
+      setMicOn(true);
+      setCamOn(true);
+    } catch {
+      // kullanıcı yine izin vermedi - buton tekrar denenebilir olarak kalır
+    }
+  }
 
   function toggleMic() {
     cameraStreamRef.current?.getAudioTracks().forEach((track) => {
@@ -231,12 +267,18 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
 
   async function toggleScreenShare() {
     const peer = peerRef.current;
-    const cameraTrack = cameraVideoTrackRef.current;
-    if (!peer || !cameraTrack) return;
+    if (!peer) return;
 
     if (sharingScreen) {
-      const screenTrack = screenStreamRef.current?.getVideoTracks()[0];
-      if (screenTrack) peer.replaceTrack(screenTrack, cameraTrack, cameraStreamRef.current!);
+      const screenStream = screenStreamRef.current;
+      const screenTrack = screenStream?.getVideoTracks()[0];
+      if (screenTrack) {
+        if (cameraVideoTrackRef.current) {
+          peer.replaceTrack(screenTrack, cameraVideoTrackRef.current, cameraStreamRef.current!);
+        } else {
+          peer.removeTrack(screenTrack, screenStream!);
+        }
+      }
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
       setSharingScreen(false);
@@ -248,7 +290,11 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
       const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
       const screenTrack = screenStream.getVideoTracks()[0];
       screenStreamRef.current = screenStream;
-      peer.replaceTrack(cameraTrack, screenTrack, cameraStreamRef.current!);
+      if (cameraVideoTrackRef.current) {
+        peer.replaceTrack(cameraVideoTrackRef.current, screenTrack, cameraStreamRef.current!);
+      } else {
+        peer.addTrack(screenTrack, screenStream);
+      }
       if (localScreenVideoRef.current) localScreenVideoRef.current.srcObject = screenStream;
       screenTrack.onended = () => toggleScreenShare();
       setSharingScreen(true);
@@ -279,11 +325,11 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
   }
 
   const statusLabel = {
-    connecting: "Kameraya bağlanılıyor...",
+    connecting: "Bağlanılıyor...",
     waiting: "Diğer katılımcı bekleniyor... (bağlantı bazen 10-20 saniye sürebilir)",
     connected: "Bağlandı",
     ended: "Görüşme sona erdi",
-    error: "Kamera/mikrofon erişimi alınamadı veya bağlantı koptu.",
+    error: "Bağlantı kurulamadı. Sayfayı yenileyip tekrar dene.",
   }[status];
 
   return (
@@ -308,6 +354,11 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-6 text-center text-sm text-gray-300">
               <span>{statusLabel}</span>
               {iceState && <span className="text-xs text-gray-500">bağlantı durumu: {iceState}</span>}
+            </div>
+          )}
+          {status === "connected" && !sharingScreen && !remoteHasVideo && (
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+              {remoteSharing ? "" : `${remoteName} kamerasını açmadı`}
             </div>
           )}
           {status === "connected" && (
@@ -335,16 +386,22 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
               </div>
             )}
             <div className="relative w-40 overflow-hidden rounded border border-gray-700 sm:w-56">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full bg-gray-800 object-cover"
-              />
+              {hasMedia ? (
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full bg-gray-800 object-cover"
+                />
+              ) : (
+                <div className="flex aspect-video w-full items-center justify-center bg-gray-800 text-xs text-gray-400">
+                  Kamera kapalı
+                </div>
+              )}
               <span className="absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-xs">
                 Sen{localName ? ` (${localName})` : ""}
-                {!micOn && " · 🔇"}
+                {hasMedia && !micOn && " · 🔇"}
               </span>
             </div>
           </div>
@@ -403,19 +460,27 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-3 border-t border-gray-700 bg-gray-900 p-3">
-        <button
-          onClick={toggleMic}
-          className={`rounded-full px-4 py-2 text-sm ${micOn ? "bg-gray-700" : "bg-red-600"}`}
-        >
-          {micOn ? "🎤 Mikrofon" : "🔇 Mikrofon kapalı"}
-        </button>
-        <button
-          onClick={toggleCam}
-          className={`rounded-full px-4 py-2 text-sm ${camOn ? "bg-gray-700" : "bg-red-600"}`}
-        >
-          {camOn ? "📷 Kamera" : "🚫 Kamera kapalı"}
-        </button>
+      <div className="flex flex-wrap items-center justify-center gap-3 border-t border-gray-700 bg-gray-900 p-3">
+        {hasMedia ? (
+          <>
+            <button
+              onClick={toggleMic}
+              className={`rounded-full px-4 py-2 text-sm ${micOn ? "bg-gray-700" : "bg-red-600"}`}
+            >
+              {micOn ? "🎤 Mikrofon" : "🔇 Mikrofon kapalı"}
+            </button>
+            <button
+              onClick={toggleCam}
+              className={`rounded-full px-4 py-2 text-sm ${camOn ? "bg-gray-700" : "bg-red-600"}`}
+            >
+              {camOn ? "📷 Kamera" : "🚫 Kamera kapalı"}
+            </button>
+          </>
+        ) : (
+          <button onClick={enableMedia} className="rounded-full bg-blue-600 px-4 py-2 text-sm">
+            🎥 Kamera ve Mikrofonu Aç
+          </button>
+        )}
         <button
           onClick={toggleScreenShare}
           className={`rounded-full px-4 py-2 text-sm ${sharingScreen ? "bg-blue-600" : "bg-gray-700"}`}
