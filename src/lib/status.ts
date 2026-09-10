@@ -30,3 +30,13 @@ export function formatRange(startTime: string, endTime: string) {
     minute: "2-digit",
   })}`;
 }
+
+// Ders bitiş saatinden bir süre sonra video odasına tekrar girilemez (bkz.
+// src/app/room/[lessonId]/page.tsx). Aynı tolerans payı burada da kullanılır ki
+// ders listelerindeki "Odaya Gir" butonu, girilemeyecek bir ders için görünmesin.
+export const ROOM_GRACE_PERIOD_MS = 15 * 60 * 1000;
+
+export function isRoomJoinable(lesson: { status: string; endTime: string }) {
+  if (lesson.status === "CANCELLED") return false;
+  return Date.now() <= new Date(lesson.endTime).getTime() + ROOM_GRACE_PERIOD_MS;
+}

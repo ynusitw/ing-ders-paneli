@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LESSON_STATUS_CLASS, LESSON_STATUS_LABEL, formatRange } from "@/lib/status";
+import { LESSON_STATUS_CLASS, LESSON_STATUS_LABEL, formatRange, isRoomJoinable } from "@/lib/status";
 
 type Lesson = {
   id: string;
@@ -39,7 +39,7 @@ export default function TeacherLessonsPage() {
                 {LESSON_STATUS_LABEL[lesson.status]}
               </span>
             </div>
-            {lesson.status === "SCHEDULED" && (
+            {lesson.status === "SCHEDULED" && isRoomJoinable(lesson) && (
               <Link
                 href={`/room/${lesson.id}`}
                 className="rounded bg-black px-3 py-1 text-sm text-white"
