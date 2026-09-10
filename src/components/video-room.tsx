@@ -548,11 +548,20 @@ export function VideoRoom({ roomId, isInitiator, localName, remoteName, leaveHre
                 {messages.map((m, i) => (
                   <div
                     key={i}
-                    className={`max-w-[85%] rounded px-2 py-1 text-sm ${
-                      m.from === "me" ? "self-end bg-blue-600" : "self-start bg-gray-700"
+                    className={`flex max-w-[85%] flex-col ${
+                      m.from === "me" ? "self-end items-end" : "self-start items-start"
                     }`}
                   >
-                    {m.text}
+                    <span className="mb-0.5 px-1 text-xs text-gray-400">
+                      {m.from === "me" ? localName : remoteName}
+                    </span>
+                    <div
+                      className={`rounded px-2 py-1 text-sm ${
+                        m.from === "me" ? "bg-blue-600" : "bg-gray-700"
+                      }`}
+                    >
+                      {m.text}
+                    </div>
                   </div>
                 ))}
                 <div ref={chatEndRef} />
