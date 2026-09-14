@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type NavIcon = "grid" | "calendar" | "inbox" | "video" | "users" | "cards" | "plus";
+export type NavIcon =
+  | "grid"
+  | "calendar"
+  | "inbox"
+  | "video"
+  | "users"
+  | "cards"
+  | "plus"
+  | "check";
 
 type NavLink = { href: string; label: string; icon: NavIcon };
 
@@ -16,6 +24,7 @@ const ICON_PATHS: Record<NavIcon, string> = {
   users: "M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 8v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
   cards: "M12 3 3 8l9 5 9-5-9-5ZM3 13l9 5 9-5M3 17.5l9 5 9-5",
   plus: "M7 3v3m10-3v3M4 9h16M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Zm7 6v6m-3-3h6",
+  check: "M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4",
 };
 
 function Icon({ name }: { name: NavIcon }) {

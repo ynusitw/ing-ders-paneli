@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { SESSION_COOKIE } from "@/lib/constants";
 import type { Role } from "@/types";
+import { normalizeLevel, type Level } from "@/lib/levels";
 
 export { SESSION_COOKIE };
 
@@ -10,6 +11,8 @@ export type CurrentUser = {
   email: string;
   fullName: string;
   role: Role;
+  // Sadece ogrenciler icin anlamli; eski kayitlarda alan yoksa A1 kabul edilir.
+  level: Level;
 };
 
 // Node.js runtime'da (API route / server component) çağrılır; Edge middleware
@@ -31,6 +34,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       email: data.email,
       fullName: data.fullName,
       role: data.role,
+      level: normalizeLevel(data.level),
     };
   } catch {
     return null;

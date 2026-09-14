@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/student/my-requests", label: "Taleplerim", icon: "inbox" },
   { href: "/student/my-lessons", label: "Derslerim", icon: "video" },
   { href: "/student/flashcards", label: "Kelime Kartlarım", icon: "cards" },
+  { href: "/student/assignments", label: "Ödevlerim", icon: "check" },
 ] as const;
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {

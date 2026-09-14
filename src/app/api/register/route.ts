@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { DEFAULT_LEVEL } from "@/lib/levels";
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -20,12 +21,16 @@ export async function POST(req: NextRequest) {
     displayName: body.fullName,
   });
 
-  await adminDb.collection("users").doc(userRecord.uid).set({
-    email: body.email,
-    fullName: body.fullName,
-    role: body.role,
-    createdAt: new Date().toISOString(),
-  });
+  await adminDb
+    .collection("users")
+    .doc(userRecord.uid)
+    .set({
+      email: body.email,
+      fullName: body.fullName,
+      role: body.role,
+      createdAt: new Date().toISOString(),
+      ...(body.role === "STUDENT" ? { level: DEFAULT_LEVEL } : {}),
+    });
 
   const customToken = await adminAuth.createCustomToken(userRecord.uid, {
     role: body.role,

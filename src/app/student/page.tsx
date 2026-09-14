@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL, formatRange, isRoomJoinable } from "@/lib/status";
 import { LessonCountdown } from "@/components/lesson-countdown";
+import { LevelBadge } from "@/components/level-badge";
+import type { Level } from "@/lib/levels";
 
 type LessonRequest = {
   id: string;
@@ -16,6 +18,13 @@ type Lesson = { id: string; teacherName: string; startTime: string; endTime: str
 export default function StudentDashboard() {
   const [pending, setPending] = useState<LessonRequest[]>([]);
   const [next, setNext] = useState<Lesson | null>(null);
+  const [level, setLevel] = useState<Level | null>(null);
+
+  useEffect(() => {
+    fetch("/api/levels")
+      .then((res) => res.json())
+      .then((data: { level: Level }) => setLevel(data.level));
+  }, []);
 
   useEffect(() => {
     fetch("/api/requests")
@@ -36,7 +45,10 @@ export default function StudentDashboard() {
 
   return (
     <main className="fade-up mx-auto max-w-3xl p-8">
-      <h1 className="page-title mb-1">Öğrenci Paneli</h1>
+      <div className="mb-1 flex flex-wrap items-center gap-3">
+        <h1 className="page-title">Öğrenci Paneli</h1>
+        {level && <LevelBadge level={level} />}
+      </div>
       <p className="page-subtitle mb-7">Derslerin ve taleplerin tek bakışta.</p>
 
       <h2 className="section-title mb-3">Yaklaşan dersin</h2>
