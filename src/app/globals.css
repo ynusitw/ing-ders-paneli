@@ -12,11 +12,17 @@
 
 @layer base {
   :root {
+    /* Native form kontrollerinin (select acilir listesi, tarih secici) isletim
+     * sistemi varsayilanlariyla degil temamizla cizilmesi icin. */
+    color-scheme: light;
+
     --bg-base: #f2f5fd;
     --bg-deep: #e6ebfa;
     --surface: rgba(255, 255, 255, 0.72);
     --surface-strong: rgba(255, 255, 255, 0.92);
     --surface-hover: rgba(255, 255, 255, 0.88);
+    /* Saydam olmayan yuzey - <option> gibi blur uygulanamayan ogeler icin. */
+    --surface-solid: #ffffff;
     --border: rgba(15, 23, 42, 0.1);
     --border-strong: rgba(15, 23, 42, 0.18);
     --text: #0b1220;
@@ -41,11 +47,14 @@
   }
 
   .dark {
+    color-scheme: dark;
+
     --bg-base: #05070f;
     --bg-deep: #020309;
     --surface: rgba(148, 163, 214, 0.06);
     --surface-strong: rgba(148, 163, 214, 0.1);
     --surface-hover: rgba(148, 163, 214, 0.11);
+    --surface-solid: #141a2b;
     --border: rgba(148, 176, 255, 0.12);
     --border-strong: rgba(148, 176, 255, 0.26);
     --text: #e8edfb;
@@ -122,6 +131,14 @@
   input::placeholder,
   textarea::placeholder {
     color: var(--text-faint);
+  }
+
+  /* Acilir listedeki secenekler blur/saydamlik alamaz; isletim sistemi
+   * varsayilani beyaz zemin cizdigi icin acik renk metin okunmuyordu. */
+  option,
+  optgroup {
+    background-color: var(--surface-solid);
+    color: var(--text);
   }
 
   input:focus,
