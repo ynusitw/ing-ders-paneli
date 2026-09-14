@@ -11,11 +11,11 @@ type Card = {
   dueDate: string;
 };
 
-const QUALITY_BUTTONS: { quality: ReviewQuality; label: string; className: string }[] = [
-  { quality: REVIEW_QUALITY.AGAIN, label: "Tekrar", className: "bg-red-500 hover:bg-red-600" },
-  { quality: REVIEW_QUALITY.HARD, label: "Zor", className: "bg-amber-500 hover:bg-amber-600" },
-  { quality: REVIEW_QUALITY.GOOD, label: "İyi", className: "bg-emerald-500 hover:bg-emerald-600" },
-  { quality: REVIEW_QUALITY.EASY, label: "Kolay", className: "bg-blue-600 hover:bg-blue-500" },
+const QUALITY_BUTTONS: { quality: ReviewQuality; label: string; gradient: string }[] = [
+  { quality: REVIEW_QUALITY.AGAIN, label: "Tekrar", gradient: "linear-gradient(120deg,#fb7185,#e11d48)" },
+  { quality: REVIEW_QUALITY.HARD, label: "Zor", gradient: "linear-gradient(120deg,#fbbf24,#f97316)" },
+  { quality: REVIEW_QUALITY.GOOD, label: "İyi", gradient: "linear-gradient(120deg,#34d399,#059669)" },
+  { quality: REVIEW_QUALITY.EASY, label: "Kolay", gradient: "linear-gradient(120deg,#22d3ee,#6366f1)" },
 ];
 
 function formatNextDue(iso: string) {
@@ -27,6 +27,8 @@ export default function StudentFlashcardsPage() {
   const [queue, setQueue] = useState<Card[]>([]);
   const [revealed, setRevealed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Oturum basindaki kuyruk boyu - ilerleme cubugunun paydasi.
+  const [sessionSize, setSessionSize] = useState(0);
 
   useEffect(() => {
     fetch("/api/flashcards")
@@ -38,6 +40,7 @@ export default function StudentFlashcardsPage() {
           .sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
         setCards(all);
         setQueue(due);
+        setSessionSize(due.length);
       });
   }, []);
 
@@ -68,66 +71,107 @@ export default function StudentFlashcardsPage() {
   if (cards === null) {
     return (
       <main className="mx-auto max-w-xl p-8">
-        <p className="text-sm text-gray-500">Yükleniyor...</p>
+        <p className="text-dim text-sm">Yükleniyor...</p>
       </main>
     );
   }
 
   if (cards.length === 0) {
     return (
-      <main className="mx-auto max-w-xl p-8">
-        <h1 className="mb-2 text-xl font-semibold">Kelime Kartlarım</h1>
-        <p className="text-sm text-gray-500">Öğretmenin henüz sana kelime kartı eklemedi.</p>
+      <main className="fade-up mx-auto max-w-xl p-8">
+        <h1 className="page-title mb-1">Kelime Kartlarım</h1>
+        <p className="text-dim glass-card mt-6 p-6 text-sm">
+          Öğretmenin henüz sana kelime kartı eklemedi.
+        </p>
       </main>
     );
   }
 
   const current = queue[0];
+  const done = sessionSize - queue.length;
+  const progress = sessionSize === 0 ? 100 : (done / sessionSize) * 100;
 
   return (
-    <main className="mx-auto max-w-xl p-8">
-      <h1 className="mb-1 text-xl font-semibold">Kelime Kartlarım</h1>
-      <p className="mb-6 text-sm text-gray-500">Toplam {cards.length} kelime</p>
+    <main className="fade-up mx-auto max-w-xl p-8">
+      <h1 className="page-title mb-1">Kelime Kartlarım</h1>
+      <p className="page-subtitle mb-6">Toplam {cards.length} kelime</p>
+
+      {/* Oturum ilerlemesi */}
+      {sessionSize > 0 && (
+        <div className="mb-6">
+          <div className="text-faint mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-widest">
+            <span>Bugünkü tekrar</span>
+            <span className="tabular-nums">
+              {done} / {sessionSize}
+            </span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-strong)]">
+            <div
+              className="h-full rounded-full bg-[linear-gradient(90deg,var(--accent-1),var(--accent-2),var(--accent-3))] shadow-[0_0_14px_var(--glow-hard)] transition-[width] duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {!current ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <p className="text-lg font-medium">Harika, bugünkü tekrarların bitti! 🎉</p>
+        <div className="glass-card glow-ring p-8 text-center">
+          <div className="mb-3 text-4xl">🎉</div>
+          <p className="font-[family-name:var(--font-display)] text-xl font-bold">
+            Bugünkü tekrarların bitti!
+          </p>
           {nextUpcoming && (
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="text-dim mt-2 text-sm">
               Sıradaki tekrar {formatNextDue(nextUpcoming.dueDate)} tarihinde hazır olacak.
             </p>
           )}
         </div>
       ) : (
         <div>
-          <p className="mb-2 text-sm text-gray-500">{queue.length} kart kaldı</p>
-          <div
+          <button
+            type="button"
             onClick={() => !revealed && setRevealed(true)}
-            className={`flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm dark:border-gray-700 dark:bg-gray-800 ${
-              !revealed ? "cursor-pointer" : ""
+            className={`glass-card glow-ring flex min-h-[260px] w-full flex-col items-center justify-center p-8 text-center transition-transform duration-300 ${
+              revealed ? "" : "cursor-pointer hover:-translate-y-1"
             }`}
           >
-            <p className="text-2xl font-semibold">{current.term}</p>
+            <span className="text-faint mb-4 text-[10px] font-bold uppercase tracking-[0.2em]">
+              {revealed ? "Cevap" : "Kelime"}
+            </span>
+
+            <p className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight">
+              {current.term}
+            </p>
+
             {revealed ? (
-              <>
-                <p className="mt-4 text-lg text-gray-700 dark:text-gray-300">{current.definition}</p>
+              <div className="fade-up mt-5 w-full border-t border-[var(--border)] pt-5">
+                <p className="bg-[linear-gradient(100deg,var(--accent-1),var(--accent-2)_55%,var(--accent-3))] bg-clip-text text-2xl font-semibold text-transparent">
+                  {current.definition}
+                </p>
                 {current.example && (
-                  <p className="mt-2 text-sm italic text-gray-500">{current.example}</p>
+                  <p className="text-dim mt-3 text-sm italic">“{current.example}”</p>
                 )}
-              </>
+              </div>
             ) : (
-              <p className="mt-4 text-sm text-gray-400">Cevabı görmek için karta tıkla</p>
+              <span className="text-faint mt-6 inline-flex items-center gap-2 text-xs">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent-2)] opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--accent-2)]" />
+                </span>
+                Cevabı görmek için karta dokun
+              </span>
             )}
-          </div>
+          </button>
 
           {revealed && (
-            <div className="mt-4 grid grid-cols-4 gap-2">
+            <div className="fade-up mt-4 grid grid-cols-4 gap-2">
               {QUALITY_BUTTONS.map((b) => (
                 <button
                   key={b.quality}
                   onClick={() => handleAnswer(b.quality)}
                   disabled={submitting}
-                  className={`rounded-lg px-2 py-2 text-sm font-medium text-white transition-colors disabled:opacity-50 ${b.className}`}
+                  style={{ backgroundImage: b.gradient }}
+                  className="btn text-white shadow-[0_10px_26px_-14px_rgba(0,0,0,0.8)] hover:-translate-y-0.5"
                 >
                   {b.label}
                 </button>

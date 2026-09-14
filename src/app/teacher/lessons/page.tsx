@@ -22,19 +22,19 @@ export default function TeacherLessonsPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-4 text-xl font-semibold">Onaylanan Dersler</h1>
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-6">Onaylanan Dersler</h1>
 
-      {lessons.length === 0 && <p className="text-sm text-gray-500">Henüz onaylanan ders yok.</p>}
+      {lessons.length === 0 && <p className="text-dim text-sm">Henüz onaylanan ders yok.</p>}
 
       <ul className="flex flex-col gap-2">
         {lessons.map((lesson) => (
-          <li key={lesson.id} className="flex items-center justify-between rounded border p-3">
+          <li key={lesson.id} className="flex items-center justify-between glass-card p-4">
             <div>
               <span className="font-medium">{lesson.studentName}</span>
-              <p className="text-sm text-gray-600">{formatRange(lesson.startTime, lesson.endTime)}</p>
+              <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
               <span
-                className={`mt-1 inline-block rounded px-2 py-1 text-xs ${LESSON_STATUS_CLASS[lesson.status]}`}
+                className={`badge mt-1 ${LESSON_STATUS_CLASS[lesson.status]}`}
               >
                 {LESSON_STATUS_LABEL[lesson.status]}
               </span>

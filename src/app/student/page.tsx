@@ -35,32 +35,38 @@ export default function StudentDashboard() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-6 text-xl font-semibold">Öğrenci Paneli</h1>
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-1">Öğrenci Paneli</h1>
+      <p className="page-subtitle mb-7">Derslerin ve taleplerin tek bakışta.</p>
 
-      <h2 className="mb-2 text-sm font-medium text-gray-600">Yaklaşan dersin</h2>
+      <h2 className="section-title mb-3">Yaklaşan dersin</h2>
       {next ? (
-        <div className="mb-6 flex items-center justify-between rounded border p-4">
-          <div>
-            <span className="font-medium">{next.teacherName}</span>
-            <p className="text-sm text-gray-600">{formatRange(next.startTime, next.endTime)}</p>
+        <div className="glass-card glass-card-interactive mb-8 flex items-center justify-between gap-4 p-5">
+          <div className="min-w-0">
+            <span className="font-semibold">{next.teacherName}</span>
+            <p className="text-dim text-sm">{formatRange(next.startTime, next.endTime)}</p>
           </div>
           <LessonCountdown lessonId={next.id} startTime={next.startTime} endTime={next.endTime} />
         </div>
       ) : (
-        <p className="mb-6 text-sm text-gray-500">Yaklaşan dersin yok.</p>
+        <p className="text-dim glass-card mb-8 p-5 text-sm">Yaklaşan dersin yok.</p>
       )}
 
-      <h2 className="mb-2 text-sm font-medium text-gray-600">Bekleyen taleplerin</h2>
-      {pending.length === 0 && <p className="text-sm text-gray-500">Bekleyen talebin yok.</p>}
-      <ul className="flex flex-col gap-2">
+      <h2 className="section-title mb-3">Bekleyen taleplerin</h2>
+      {pending.length === 0 && (
+        <p className="text-dim glass-card p-5 text-sm">Bekleyen talebin yok.</p>
+      )}
+      <ul className="flex flex-col gap-3">
         {pending.map((r) => (
-          <li key={r.id} className="flex items-center justify-between rounded border p-3">
-            <div>
-              <span className="font-medium">{r.teacherName}</span>
-              <p className="text-sm text-gray-600">{formatRange(r.startTime, r.endTime)}</p>
+          <li
+            key={r.id}
+            className="glass-card glass-card-interactive flex items-center justify-between gap-4 p-4"
+          >
+            <div className="min-w-0">
+              <span className="font-semibold">{r.teacherName}</span>
+              <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime)}</p>
             </div>
-            <span className={`rounded px-2 py-1 text-xs ${REQUEST_STATUS_CLASS[r.status]}`}>
+            <span className={`badge ${REQUEST_STATUS_CLASS[r.status]}`}>
               {REQUEST_STATUS_LABEL[r.status]}
             </span>
           </li>

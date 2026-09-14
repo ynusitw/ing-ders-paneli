@@ -144,9 +144,9 @@ export function AvailabilityBuilder({
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-8 rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      className="glass-card fade-up mb-8 p-6"
     >
-      <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Hangi günler?</p>
+      <p className="field-label mb-3">Hangi günler?</p>
       <div className="mb-5 flex flex-wrap gap-2">
         {WEEKDAYS.map((day) => {
           const selected = weekdays.includes(day.value);
@@ -156,11 +156,7 @@ export function AvailabilityBuilder({
               type="button"
               onClick={() => toggleWeekday(day.value)}
               aria-pressed={selected}
-              className={`h-11 w-14 rounded-lg text-sm font-medium transition-colors ${
-                selected
-                  ? "bg-blue-600 text-white shadow"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-              }`}
+              className={`chip h-11 w-14 rounded-xl ${selected ? "chip-active" : ""}`}
             >
               {day.short}
             </button>
@@ -170,13 +166,13 @@ export function AvailabilityBuilder({
 
       <div className="mb-5 flex flex-wrap items-end gap-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="field-label">
             Başlangıç saati
           </label>
           <select
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="rounded-lg border p-2 text-sm"
+            className="field"
           >
             {TIME_OPTIONS.map((t) => (
               <option key={t} value={t}>
@@ -186,13 +182,13 @@ export function AvailabilityBuilder({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="field-label">
             Bitiş saati
           </label>
           <select
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="rounded-lg border p-2 text-sm"
+            className="field"
           >
             {TIME_OPTIONS.map((t) => (
               <option key={t} value={t}>
@@ -202,13 +198,13 @@ export function AvailabilityBuilder({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="field-label">
             Ders süresi
           </label>
           <select
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
-            className="rounded-lg border p-2 text-sm"
+            className="field"
           >
             {DURATIONS.map((d) => (
               <option key={d.value} value={d.value}>
@@ -218,13 +214,13 @@ export function AvailabilityBuilder({
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label className="field-label">
             Kaç hafta tekrarlansın
           </label>
           <select
             value={weeksAhead}
             onChange={(e) => setWeeksAhead(Number(e.target.value))}
-            className="rounded-lg border p-2 text-sm"
+            className="field"
           >
             {WEEKS_AHEAD_OPTIONS.map((w) => (
               <option key={w} value={w}>
@@ -236,7 +232,7 @@ export function AvailabilityBuilder({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-gray-500">
+        <p className="text-dim text-sm">
           {weekdays.length === 0
             ? "Önce bir gün seç."
             : newSlots.length > 0
@@ -248,14 +244,14 @@ export function AvailabilityBuilder({
         <button
           type="submit"
           disabled={loading || newSlots.length === 0}
-          className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+          className="btn btn-primary shrink-0"
         >
           {loading ? "Oluşturuluyor..." : "Müsaitlik Oluştur"}
         </button>
       </div>
 
-      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-      {success && <p className="mt-3 text-sm text-green-700">{success}</p>}
+      {error && <p className="mt-3 text-sm text-[var(--bad)]">{error}</p>}
+      {success && <p className="mt-3 text-sm text-[var(--ok)]">{success}</p>}
     </form>
   );
 }

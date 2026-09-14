@@ -57,39 +57,44 @@ function CardForm({ studentId, onAdded }: { studentId: string; onAdded: () => vo
   return (
     <form
       onSubmit={handleSubmit}
-      className="mb-6 flex flex-wrap items-start gap-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+      className="glass-card mb-6 flex flex-wrap items-end gap-3 p-5"
     >
-      <input
-        type="text"
-        placeholder="Kelime / ifade (İngilizce)"
-        value={term}
-        onChange={(e) => setTerm(e.target.value)}
-        className="min-w-[160px] flex-1 rounded-lg border p-2 text-sm"
-        required
-      />
-      <input
-        type="text"
-        placeholder="Anlamı (Türkçe)"
-        value={definition}
-        onChange={(e) => setDefinition(e.target.value)}
-        className="min-w-[160px] flex-1 rounded-lg border p-2 text-sm"
-        required
-      />
-      <input
-        type="text"
-        placeholder="Örnek cümle (opsiyonel)"
-        value={example}
-        onChange={(e) => setExample(e.target.value)}
-        className="min-w-[200px] flex-[2] rounded-lg border p-2 text-sm"
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
-      >
+      <div className="min-w-[150px] flex-1">
+        <label className="field-label">Kelime</label>
+        <input
+          type="text"
+          placeholder="İngilizce"
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          className="field"
+          required
+        />
+      </div>
+      <div className="min-w-[150px] flex-1">
+        <label className="field-label">Anlamı</label>
+        <input
+          type="text"
+          placeholder="Türkçe"
+          value={definition}
+          onChange={(e) => setDefinition(e.target.value)}
+          className="field"
+          required
+        />
+      </div>
+      <div className="min-w-[190px] flex-[2]">
+        <label className="field-label">Örnek cümle</label>
+        <input
+          type="text"
+          placeholder="Opsiyonel"
+          value={example}
+          onChange={(e) => setExample(e.target.value)}
+          className="field"
+        />
+      </div>
+      <button type="submit" disabled={loading} className="btn btn-primary shrink-0">
         {loading ? "Ekleniyor..." : "Kart Ekle"}
       </button>
-      {error && <p className="w-full text-xs text-red-600">{error}</p>}
+      {error && <p className="w-full text-xs text-[var(--bad)]">{error}</p>}
     </form>
   );
 }
@@ -133,14 +138,14 @@ export default function TeacherFlashcardsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl p-8">
-      <h1 className="mb-2 text-xl font-semibold">Kelime Kartları</h1>
-      <p className="mb-6 text-sm text-gray-500">
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-1">Kelime Kartları</h1>
+      <p className="page-subtitle mb-7">
         Öğrencine kelime kartları ekle; öğrenci bunları aralıklı tekrar (spaced repetition) yöntemiyle çalışır.
       </p>
 
       {students.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-dim text-sm">
           Henüz onaylanmış bir dersin yok, kart eklemek için önce bir öğrencinle dersin olması gerekiyor.
         </p>
       ) : (
@@ -150,11 +155,7 @@ export default function TeacherFlashcardsPage() {
               <button
                 key={s.studentId}
                 onClick={() => setSelected(s.studentId)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  selected === s.studentId
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                }`}
+                className={`chip ${selected === s.studentId ? "chip-active" : ""}`}
               >
                 {s.studentName}
               </button>
@@ -164,29 +165,28 @@ export default function TeacherFlashcardsPage() {
           {selected && <CardForm studentId={selected} onAdded={() => loadCards(selected)} />}
 
           {loaded && cards.length === 0 && (
-            <p className="text-sm text-gray-500">Bu öğrenci için henüz kelime kartı eklemedin.</p>
+            <p className="text-dim text-sm">Bu öğrenci için henüz kelime kartı eklemedin.</p>
           )}
 
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-3">
             {cards.map((card) => (
               <li
                 key={card.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                className="glass-card glass-card-interactive flex items-start justify-between gap-3 p-4"
               >
-                <div>
-                  <p className="font-medium">
-                    {card.term} <span className="text-gray-400">→</span> {card.definition}
+                <div className="min-w-0">
+                  <p className="font-semibold">
+                    {card.term}
+                    <span className="text-faint mx-2">→</span>
+                    <span className="text-dim font-normal">{card.definition}</span>
                   </p>
-                  {card.example && <p className="text-sm italic text-gray-500">{card.example}</p>}
-                  <p className="mt-1 text-xs text-gray-400">
+                  {card.example && <p className="text-dim mt-0.5 text-sm italic">{card.example}</p>}
+                  <p className="text-faint mt-1.5 text-xs">
                     {card.repetitions === 0 ? "Henüz tekrar edilmedi" : `${card.repetitions}. tekrar tamamlandı`} ·
                     sıradaki tekrar {formatDue(card.dueDate)}
                   </p>
                 </div>
-                <button
-                  onClick={() => handleDelete(card.id)}
-                  className="shrink-0 text-xs text-red-600 hover:underline"
-                >
+                <button onClick={() => handleDelete(card.id)} className="btn btn-danger btn-sm shrink-0">
                   Sil
                 </button>
               </li>

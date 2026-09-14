@@ -50,14 +50,22 @@ export function LessonCountdown({
     return (
       <Link
         href={`/room/${lessonId}`}
-        className="inline-flex animate-pulse items-center gap-1.5 rounded-full bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow shadow-green-600/40 hover:animate-none"
+        className="btn btn-success btn-sm shrink-0 animate-pulse rounded-full hover:animate-none"
       >
-        🎥 Derse Katıl
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+        </span>
+        Derse Katıl
       </Link>
     );
   }
 
   if (remaining <= 0) return null;
 
-  return <span className="text-xs text-gray-500">Kalan: {formatRemaining(remaining)}</span>;
+  return (
+    <span className="text-faint shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 font-[family-name:var(--font-display)] text-xs tabular-nums">
+      {formatRemaining(remaining)}
+    </span>
+  );
 }

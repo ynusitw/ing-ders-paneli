@@ -50,15 +50,16 @@ export default function RequestLessonPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-4 text-xl font-semibold">Ders Talep Et</h1>
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-1">Ders Talep Et</h1>
+      <p className="page-subtitle mb-7">Öğretmenini seç, müsait bir saate talep gönder.</p>
 
-      <div className="mb-6 flex flex-col gap-1">
-        <label className="text-sm text-gray-600">Öğretmen</label>
+      <div className="glass-card mb-6 p-5">
+        <label className="field-label">Öğretmen</label>
         <select
           value={teacherId}
           onChange={(e) => setTeacherId(e.target.value)}
-          className="rounded border p-2"
+          className="field"
         >
           <option value="">Bir öğretmen seç</option>
           {teachers.map((t) => (
@@ -71,17 +72,19 @@ export default function RequestLessonPage() {
 
       {teacherId && (
         <div className="mb-6">
-          <p className="mb-2 text-sm text-gray-600">Müsait saatler</p>
+          <p className="section-title mb-3">Müsait saatler</p>
           {slots.length === 0 && (
-            <p className="text-sm text-gray-500">Bu öğretmenin şu an müsait saati yok.</p>
+            <p className="text-dim text-sm">Bu öğretmenin şu an müsait saati yok.</p>
           )}
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-3">
             {slots.map((slot) => (
               <li key={slot.id}>
                 <button
                   onClick={() => setSelectedSlotId(slot.id)}
-                  className={`w-full rounded border p-3 text-left ${
-                    selectedSlotId === slot.id ? "border-black bg-gray-50" : ""
+                  className={`glass-card glass-card-interactive w-full p-4 text-left ${
+                    selectedSlotId === slot.id
+                      ? "glow-ring !border-[var(--accent-2)]"
+                      : ""
                   }`}
                 >
                   {new Date(slot.startTime).toLocaleString("tr-TR")} —{" "}
@@ -102,24 +105,24 @@ export default function RequestLessonPage() {
             placeholder="Öğretmene not (opsiyonel)"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="rounded border p-2"
+            className="field"
             rows={3}
           />
           <button
             onClick={handleSubmit}
             disabled={status === "loading"}
-            className="rounded bg-black p-2 text-white disabled:opacity-50"
+            className="btn btn-primary"
           >
             {status === "loading" ? "Gönderiliyor..." : "Talep Gönder"}
           </button>
           {status === "error" && (
-            <p className="text-sm text-red-600">Talep gönderilemedi, tekrar dene.</p>
+            <p className="text-sm text-[var(--bad)]">Talep gönderilemedi, tekrar dene.</p>
           )}
         </div>
       )}
 
       {status === "success" && (
-        <p className="mt-4 text-sm text-green-700">
+        <p className="glass-card mt-4 p-4 text-sm text-[var(--ok)]">
           Talebin gönderildi. Durumunu "Taleplerim" sayfasından takip edebilirsin.
         </p>
       )}

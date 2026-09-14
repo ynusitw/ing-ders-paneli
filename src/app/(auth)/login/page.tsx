@@ -37,34 +37,53 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-8">
-      <h1 className="text-xl font-semibold">Giriş Yap</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          type="email"
-          placeholder="E-posta"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded border p-2"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Şifre"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded border p-2"
-          required
-        />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black p-2 text-white disabled:opacity-50"
-        >
-          {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
-        </button>
-      </form>
+    <main className="flex min-h-screen items-center justify-center p-6">
+      <div className="fade-up w-full max-w-sm">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[linear-gradient(120deg,var(--accent-1),var(--accent-2)_55%,var(--accent-3))] text-[var(--accent-ink)] shadow-[0_18px_40px_-14px_var(--glow-hard)]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
+              <path d="M4 6h10M4 12h16M4 18h7" strokeLinecap="round" />
+            </svg>
+          </span>
+          <h1 className="page-title">Ders Paneli</h1>
+          <p className="page-subtitle mt-1">Devam etmek için oturum aç</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="glass-card flex flex-col gap-4 p-6">
+          <div>
+            <label className="field-label">E-posta</label>
+            <input
+              type="email"
+              placeholder="ornek@mail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="field"
+              required
+            />
+          </div>
+          <div>
+            <label className="field-label">Şifre</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="field"
+              required
+            />
+          </div>
+
+          {error && (
+            <p className="rounded-lg border border-[color-mix(in_srgb,var(--bad)_35%,transparent)] bg-[color-mix(in_srgb,var(--bad)_12%,transparent)] px-3 py-2 text-sm text-[var(--bad)]">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" disabled={loading} className="btn btn-primary mt-1 w-full">
+            {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

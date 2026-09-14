@@ -5,9 +5,9 @@ export const REQUEST_STATUS_LABEL = {
 } as const;
 
 export const REQUEST_STATUS_CLASS = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  APPROVED: "bg-green-100 text-green-800",
-  REJECTED: "bg-red-100 text-red-800",
+  PENDING: "badge-amber",
+  APPROVED: "badge-emerald",
+  REJECTED: "badge-rose",
 } as const;
 
 export const LESSON_STATUS_LABEL = {
@@ -17,9 +17,9 @@ export const LESSON_STATUS_LABEL = {
 } as const;
 
 export const LESSON_STATUS_CLASS = {
-  SCHEDULED: "bg-blue-100 text-blue-800",
-  COMPLETED: "bg-gray-200 text-gray-700",
-  CANCELLED: "bg-red-100 text-red-800",
+  SCHEDULED: "badge-sky",
+  COMPLETED: "badge-slate",
+  CANCELLED: "badge-rose",
 } as const;
 
 export function formatRange(startTime: string, endTime: string) {

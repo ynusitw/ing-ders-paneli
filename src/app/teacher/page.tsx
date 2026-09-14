@@ -29,25 +29,37 @@ export default function TeacherDashboard() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-6 text-xl font-semibold">Öğretmen Paneli</h1>
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-1">Öğretmen Paneli</h1>
+      <p className="page-subtitle mb-7">Taleplerini ve yaklaşan derslerini buradan takip et.</p>
 
       <Link
         href="/teacher/requests"
-        className="mb-6 block rounded border p-4 hover:bg-gray-50"
+        className="glass-card glass-card-interactive mb-8 flex items-center gap-5 p-5"
       >
-        <span className="text-2xl font-semibold">{pendingCount}</span>
-        <p className="text-sm text-gray-600">bekleyen ders talebi</p>
+        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-[linear-gradient(120deg,var(--accent-1),var(--accent-2)_55%,var(--accent-3))] font-[family-name:var(--font-display)] text-2xl font-bold text-[var(--accent-ink)] shadow-[0_16px_36px_-14px_var(--glow-hard)]">
+          {pendingCount}
+        </span>
+        <div>
+          <p className="font-semibold">bekleyen ders talebi</p>
+          <p className="text-dim text-sm">Görüntülemek için tıkla</p>
+        </div>
+        <span className="text-faint ml-auto text-lg">→</span>
       </Link>
 
-      <h2 className="mb-2 text-sm font-medium text-gray-600">Yaklaşan dersler</h2>
-      {upcoming.length === 0 && <p className="text-sm text-gray-500">Yaklaşan ders yok.</p>}
-      <ul className="flex flex-col gap-2">
+      <h2 className="section-title mb-3">Yaklaşan dersler</h2>
+      {upcoming.length === 0 && (
+        <p className="text-dim glass-card p-5 text-sm">Yaklaşan ders yok.</p>
+      )}
+      <ul className="flex flex-col gap-3">
         {upcoming.map((lesson) => (
-          <li key={lesson.id} className="flex items-center justify-between rounded border p-3">
-            <div>
-              <span className="font-medium">{lesson.studentName}</span>
-              <p className="text-sm text-gray-600">{formatRange(lesson.startTime, lesson.endTime)}</p>
+          <li
+            key={lesson.id}
+            className="glass-card glass-card-interactive flex items-center justify-between gap-4 p-4"
+          >
+            <div className="min-w-0">
+              <span className="font-semibold">{lesson.studentName}</span>
+              <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
             </div>
             <LessonCountdown lessonId={lesson.id} startTime={lesson.startTime} endTime={lesson.endTime} />
           </li>

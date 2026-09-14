@@ -47,51 +47,80 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-4 p-8">
-      <h1 className="text-xl font-semibold">Kayıt Ol</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <input
-          type="text"
-          placeholder="Ad Soyad"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          className="rounded border p-2"
-          required
-        />
-        <input
-          type="email"
-          placeholder="E-posta"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded border p-2"
-          required
-        />
-        <input
-          type="password"
-          placeholder="Şifre (en az 6 karakter)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded border p-2"
-          required
-          minLength={6}
-        />
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as Role)}
-          className="rounded border p-2"
-        >
-          <option value="STUDENT">Öğrenci</option>
-          <option value="TEACHER">Öğretmen</option>
-        </select>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded bg-black p-2 text-white disabled:opacity-50"
-        >
-          {loading ? "Kaydediliyor..." : "Kayıt Ol"}
-        </button>
-      </form>
+    <main className="flex min-h-screen items-center justify-center p-6">
+      <div className="fade-up w-full max-w-sm">
+        <div className="mb-7 flex flex-col items-center text-center">
+          <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[linear-gradient(120deg,var(--accent-1),var(--accent-2)_55%,var(--accent-3))] text-[var(--accent-ink)] shadow-[0_18px_40px_-14px_var(--glow-hard)]">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-6 w-6">
+              <path d="M4 6h10M4 12h16M4 18h7" strokeLinecap="round" />
+            </svg>
+          </span>
+          <h1 className="page-title">Hesap Oluştur</h1>
+          <p className="page-subtitle mt-1">Birkaç saniyede başla</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="glass-card flex flex-col gap-4 p-6">
+          <div>
+            <label className="field-label">Ad Soyad</label>
+            <input
+              type="text"
+              placeholder="Adın Soyadın"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="field"
+              required
+            />
+          </div>
+          <div>
+            <label className="field-label">E-posta</label>
+            <input
+              type="email"
+              placeholder="ornek@mail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="field"
+              required
+            />
+          </div>
+          <div>
+            <label className="field-label">Şifre</label>
+            <input
+              type="password"
+              placeholder="En az 6 karakter"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="field"
+              required
+              minLength={6}
+            />
+          </div>
+          <div>
+            <label className="field-label">Rol</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["STUDENT", "TEACHER"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={`chip w-full ${role === r ? "chip-active" : ""}`}
+                >
+                  {r === "STUDENT" ? "Öğrenci" : "Öğretmen"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {error && (
+            <p className="rounded-lg border border-[color-mix(in_srgb,var(--bad)_35%,transparent)] bg-[color-mix(in_srgb,var(--bad)_12%,transparent)] px-3 py-2 text-sm text-[var(--bad)]">
+              {error}
+            </p>
+          )}
+
+          <button type="submit" disabled={loading} className="btn btn-primary mt-1 w-full">
+            {loading ? "Kaydediliyor..." : "Kayıt Ol"}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

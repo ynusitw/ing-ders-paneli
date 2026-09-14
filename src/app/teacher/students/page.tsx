@@ -54,20 +54,20 @@ function MaterialForm({ lessonId, onAdded }: { lessonId: string; onAdded: () => 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-2 rounded bg-gray-50 p-3">
+    <form onSubmit={handleSubmit} className="glass-card mt-3 flex flex-col gap-2 p-4">
       <input
         type="text"
         placeholder="Başlık"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="rounded border p-2 text-sm"
+        className="field"
         required
       />
       <textarea
         placeholder="Not (opsiyonel)"
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="rounded border p-2 text-sm"
+        className="field"
         rows={2}
       />
       <input
@@ -75,13 +75,13 @@ function MaterialForm({ lessonId, onAdded }: { lessonId: string; onAdded: () => 
         placeholder="Dosya linki (opsiyonel)"
         value={fileUrl}
         onChange={(e) => setFileUrl(e.target.value)}
-        className="rounded border p-2 text-sm"
+        className="field"
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-[var(--bad)]">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="self-start rounded bg-black px-3 py-1 text-sm text-white disabled:opacity-50"
+        className="self-start btn btn-primary btn-sm"
       >
         {loading ? "Ekleniyor..." : "Materyal Ekle"}
       </button>
@@ -104,24 +104,24 @@ function LessonCard({ lesson }: { lesson: Lesson }) {
   }, [open]);
 
   return (
-    <li className="rounded border p-3">
+    <li className="glass-card p-4">
       <button onClick={() => setOpen((o) => !o)} className="w-full text-left">
         <span className="font-medium">{lesson.studentName}</span>
-        <p className="text-sm text-gray-600">{formatRange(lesson.startTime, lesson.endTime)}</p>
+        <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
       </button>
 
       {open && (
         <div className="mt-3 border-t pt-3">
           {materials.length === 0 && (
-            <p className="text-sm text-gray-500">Bu ders için henüz materyal paylaşılmadı.</p>
+            <p className="text-dim text-sm">Bu ders için henüz materyal paylaşılmadı.</p>
           )}
           <ul className="flex flex-col gap-2">
             {materials.map((m) => (
-              <li key={m.id} className="rounded bg-gray-50 p-2 text-sm">
+              <li key={m.id} className="glass-card p-3 text-sm">
                 <p className="font-medium">{m.title}</p>
-                {m.content && <p className="text-gray-600">{m.content}</p>}
+                {m.content && <p className="text-dim">{m.content}</p>}
                 {m.fileUrl && (
-                  <a href={m.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                  <a href={m.fileUrl} target="_blank" rel="noreferrer" className="text-[var(--accent-1)] hover:underline">
                     Dosyayı aç
                   </a>
                 )}
@@ -145,13 +145,13 @@ export default function TeacherStudentsPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-xl font-semibold">Öğrenci / Ders Takibi</h1>
-      <p className="mb-4 text-sm text-gray-500">
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-2">Öğrenci / Ders Takibi</h1>
+      <p className="mb-4 text-dim text-sm">
         Bir dersi açarak öğrenciyle paylaştığın notları ve materyalleri görebilir, yenilerini ekleyebilirsin.
       </p>
 
-      {lessons.length === 0 && <p className="text-sm text-gray-500">Henüz onaylanan ders yok.</p>}
+      {lessons.length === 0 && <p className="text-dim text-sm">Henüz onaylanan ders yok.</p>}
 
       <ul className="flex flex-col gap-2">
         {lessons.map((lesson) => (

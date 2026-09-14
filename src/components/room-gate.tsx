@@ -92,11 +92,15 @@ export function RoomGate({
           otomatik olarak derse gireceksin.
         </p>
 
-        <div className="mt-2 w-full max-w-sm rounded-lg border border-gray-700 bg-gray-800 p-4 text-left">
-          <p className="mb-1 text-xs uppercase tracking-wide text-gray-500">Günün deyimi</p>
-          <p className="text-lg font-semibold">{idiom.phrase}</p>
-          <p className="mt-1 text-sm text-gray-300">{idiom.meaning}</p>
-          <p className="mt-2 text-sm italic text-gray-400">"{idiom.example}"</p>
+        <div className="mt-2 w-full max-w-sm rounded-2xl border border-white/10 bg-white/5 p-5 text-left shadow-[0_0_40px_-18px_rgba(99,102,241,0.9)] backdrop-blur-xl">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-300">
+            Günün deyimi
+          </p>
+          <p className="bg-gradient-to-r from-cyan-300 via-indigo-300 to-purple-300 bg-clip-text text-xl font-bold text-transparent">
+            {idiom.phrase}
+          </p>
+          <p className="mt-1.5 text-sm text-gray-300">{idiom.meaning}</p>
+          <p className="mt-2 text-sm italic text-gray-400">“{idiom.example}”</p>
         </div>
 
         <div className="mt-1 h-6 w-6 animate-spin rounded-full border-2 border-gray-600 border-t-white" />

@@ -1,5 +1,9 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { Inter, Space_Grotesk } from "next/font/google";
+
+const sans = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-sans" });
+const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" });
 
 export const metadata: Metadata = {
   title: "Ders Paneli",
@@ -19,14 +23,11 @@ const THEME_INIT_SCRIPT = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang="tr" className={`${sans.variable} ${display.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body
-        className="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100"
-        suppressHydrationWarning
-      >
+      <body className="min-h-screen" suppressHydrationWarning>
         {children}
       </body>
     </html>

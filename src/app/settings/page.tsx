@@ -11,10 +11,10 @@ export default async function SettingsPage() {
 
   return (
     <main className="mx-auto max-w-lg p-8">
-      <Link href={backHref} className="mb-4 inline-block text-sm text-gray-500 hover:underline">
+      <Link href={backHref} className="mb-4 inline-block text-dim text-sm hover:underline">
         ← Panele dön
       </Link>
-      <h1 className="mb-6 text-xl font-semibold">Ayarlar</h1>
+      <h1 className="page-title mb-6">Ayarlar</h1>
       <SettingsForm initialFullName={user.fullName} email={user.email} />
     </main>
   );

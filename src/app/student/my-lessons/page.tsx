@@ -28,19 +28,19 @@ function MaterialsList({ lessonId }: { lessonId: string }) {
       .then(setMaterials);
   }, [lessonId]);
 
-  if (materials === null) return <p className="text-sm text-gray-500">Yükleniyor...</p>;
+  if (materials === null) return <p className="text-dim text-sm">Yükleniyor...</p>;
   if (materials.length === 0) {
-    return <p className="text-sm text-gray-500">Bu ders için henüz materyal paylaşılmadı.</p>;
+    return <p className="text-dim text-sm">Bu ders için henüz materyal paylaşılmadı.</p>;
   }
 
   return (
     <ul className="flex flex-col gap-2">
       {materials.map((m) => (
-        <li key={m.id} className="rounded bg-gray-50 p-2 text-sm">
+        <li key={m.id} className="glass-card p-3 text-sm">
           <p className="font-medium">{m.title}</p>
-          {m.content && <p className="text-gray-600">{m.content}</p>}
+          {m.content && <p className="text-dim">{m.content}</p>}
           {m.fileUrl && (
-            <a href={m.fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+            <a href={m.fileUrl} target="_blank" rel="noreferrer" className="text-[var(--accent-1)] hover:underline">
               Dosyayı aç
             </a>
           )}
@@ -61,20 +61,20 @@ export default function MyLessonsPage() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-4 text-xl font-semibold">Yaklaşan Derslerim</h1>
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-6">Yaklaşan Derslerim</h1>
 
-      {lessons.length === 0 && <p className="text-sm text-gray-500">Henüz onaylanmış dersin yok.</p>}
+      {lessons.length === 0 && <p className="text-dim text-sm">Henüz onaylanmış dersin yok.</p>}
 
       <ul className="flex flex-col gap-2">
         {lessons.map((lesson) => (
-          <li key={lesson.id} className="rounded border p-3">
+          <li key={lesson.id} className="glass-card p-4">
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-medium">{lesson.teacherName}</span>
-                <p className="text-sm text-gray-600">{formatRange(lesson.startTime, lesson.endTime)}</p>
+                <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
                 <span
-                  className={`mt-1 inline-block rounded px-2 py-1 text-xs ${LESSON_STATUS_CLASS[lesson.status]}`}
+                  className={`badge mt-1 ${LESSON_STATUS_CLASS[lesson.status]}`}
                 >
                   {LESSON_STATUS_LABEL[lesson.status]}
                 </span>
@@ -89,7 +89,7 @@ export default function MyLessonsPage() {
                 )}
                 <button
                   onClick={() => setOpenId(openId === lesson.id ? null : lesson.id)}
-                  className="text-sm text-gray-600 hover:underline"
+                  className="text-dim text-sm hover:underline"
                 >
                   {openId === lesson.id ? "Materyalleri gizle" : "Materyalleri göster"}
                 </button>

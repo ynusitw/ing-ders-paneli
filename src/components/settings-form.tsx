@@ -47,25 +47,25 @@ function NameSection({ initialFullName }: { initialFullName: string }) {
 
   return (
     <section>
-      <h2 className="mb-2 font-medium">Ad Soyad</h2>
+      <h2 className="section-title mb-3">Ad Soyad</h2>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
-          className="flex-1 rounded border p-2"
+          className="field flex-1"
           required
         />
         <button
           type="submit"
           disabled={status === "loading"}
-          className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+          className="btn btn-primary"
         >
           Kaydet
         </button>
       </form>
-      {status === "success" && <p className="mt-1 text-sm text-green-700">Kaydedildi.</p>}
-      {status === "error" && <p className="mt-1 text-sm text-red-600">Kaydedilemedi.</p>}
+      {status === "success" && <p className="mt-2 text-sm text-[var(--ok)]">Kaydedildi.</p>}
+      {status === "error" && <p className="mt-2 text-sm text-[var(--bad)]">Kaydedilemedi.</p>}
     </section>
   );
 }
@@ -116,14 +116,14 @@ function PasswordSection({ email }: { email: string }) {
 
   return (
     <section>
-      <h2 className="mb-2 font-medium">Şifre Değiştir</h2>
+      <h2 className="section-title mb-3">Şifre Değiştir</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <input
           type="password"
           placeholder="Mevcut şifre"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
-          className="rounded border p-2"
+          className="field"
           required
         />
         <input
@@ -131,7 +131,7 @@ function PasswordSection({ email }: { email: string }) {
           placeholder="Yeni şifre (en az 6 karakter)"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
-          className="rounded border p-2"
+          className="field"
           required
           minLength={6}
         />
@@ -140,15 +140,15 @@ function PasswordSection({ email }: { email: string }) {
           placeholder="Yeni şifre (tekrar)"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
-          className="rounded border p-2"
+          className="field"
           required
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {status === "success" && <p className="text-sm text-green-700">Şifre güncellendi.</p>}
+        {error && <p className="text-sm text-[var(--bad)]">{error}</p>}
+        {status === "success" && <p className="text-sm text-[var(--ok)]">Şifre güncellendi.</p>}
         <button
           type="submit"
           disabled={status === "loading"}
-          className="self-start rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+          className="btn btn-primary self-start"
         >
           {status === "loading" ? "Güncelleniyor..." : "Şifreyi Güncelle"}
         </button>
@@ -172,9 +172,9 @@ function ThemeSection() {
 
   return (
     <section>
-      <h2 className="mb-2 font-medium">Görünüm</h2>
+      <h2 className="section-title mb-3">Görünüm</h2>
       {theme && (
-        <button onClick={toggle} className="rounded border px-4 py-2 text-sm">
+        <button onClick={toggle} className="btn btn-ghost">
           {theme === "dark" ? "☀️ Aydınlık moda geç" : "🌙 Karanlık moda geç"}
         </button>
       )}

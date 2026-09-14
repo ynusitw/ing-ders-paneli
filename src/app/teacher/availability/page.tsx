@@ -19,9 +19,9 @@ const STATUS_LABEL: Record<Slot["status"], string> = {
 // Boş (OPEN) slotlar dikkat çekici bir renkte ve tıklanabilir (silmek için);
 // dolu/talep bekleyen slotlar soluk ve pasif görünür.
 const STATUS_CHIP_CLASS: Record<Slot["status"], string> = {
-  OPEN: "bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer",
-  REQUESTED: "bg-amber-400 text-amber-950 cursor-default",
-  BOOKED: "bg-gray-200 text-gray-500 cursor-default",
+  OPEN: "slot-open",
+  REQUESTED: "slot-requested cursor-default",
+  BOOKED: "slot-booked cursor-default",
 };
 
 function formatTime(iso: string) {
@@ -79,8 +79,11 @@ export default function AvailabilityPage() {
   }, [slots]);
 
   return (
-    <main className="mx-auto max-w-3xl p-8">
-      <h1 className="mb-6 text-xl font-semibold">Müsaitlik Yönetimi</h1>
+    <main className="fade-up mx-auto max-w-3xl p-8">
+      <h1 className="page-title mb-1">Müsaitlik Yönetimi</h1>
+      <p className="page-subtitle mb-7">
+        Haftalık müsaitliğini toplu oluştur, boş slotlara tıklayarak kaldır.
+      </p>
 
       {teacherId && (
         <AvailabilityBuilder
@@ -90,7 +93,7 @@ export default function AvailabilityPage() {
       )}
 
       {loaded && groupedByDay.length === 0 && (
-        <p className="text-sm text-gray-500">
+        <p className="text-dim text-sm">
           Henüz müsaitlik eklemedin. Yukarıdaki araçla haftalık müsaitliğini oluşturabilirsin.
         </p>
       )}
@@ -98,7 +101,7 @@ export default function AvailabilityPage() {
       <div className="flex flex-col gap-6">
         {groupedByDay.map(([dayKey, daySlots]) => (
           <div key={dayKey}>
-            <h2 className="mb-2 text-sm font-semibold capitalize text-gray-700 dark:text-gray-300">
+            <h2 className="section-title mb-3 capitalize">
               {formatDayHeader(daySlots[0].startTime)}
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -109,7 +112,7 @@ export default function AvailabilityPage() {
                   disabled={slot.status !== "OPEN"}
                   onClick={() => handleDelete(slot.id)}
                   title={slot.status === "OPEN" ? "Silmek için tıkla" : STATUS_LABEL[slot.status]}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${STATUS_CHIP_CLASS[slot.status]}`}
+                  className={`chip tabular-nums ${STATUS_CHIP_CLASS[slot.status]}`}
                 >
                   {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
                   {slot.status !== "OPEN" && (
