@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { LevelProgressCard, type LevelProgressData } from "@/components/level-badge";
+import { AssignmentAttachment } from "@/components/assignment-attachment";
 import { PASS_SCORE, type Level } from "@/lib/levels";
 import { useTimezone } from "@/components/timezone-provider";
 import { formatDate as formatDateInZone } from "@/lib/timezone";
@@ -17,6 +18,8 @@ type Assignment = {
   level: Level;
   status: AssignmentStatus;
   submission: string | null;
+  fileName: string | null;
+  fileType: string | null;
   submittedAt: string | null;
   score: number | null;
   feedback: string | null;
@@ -314,12 +317,17 @@ export default function TeacherAssignmentsPage() {
                   </div>
                 </div>
 
-                {a.submission && (
+                {(a.submission || a.fileName) && (
                   <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
                     <p className="text-faint mb-1 text-[10px] font-bold uppercase tracking-[0.2em]">
                       Öğrencinin teslimi
                     </p>
-                    <p className="whitespace-pre-wrap text-sm">{a.submission}</p>
+                    {a.submission && <p className="whitespace-pre-wrap text-sm">{a.submission}</p>}
+                    <AssignmentAttachment
+                      assignmentId={a.id}
+                      fileName={a.fileName}
+                      fileType={a.fileType}
+                    />
                   </div>
                 )}
 

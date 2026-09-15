@@ -4,7 +4,17 @@ import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
 import { notify } from "@/lib/notifications";
 
-const submitSchema = z.object({ submission: z.string().min(1) });
+// Metin ya da dosya; en az biri olmali.
+const submitSchema = z
+  .object({
+    submission: z.string().optional(),
+    fileUrl: z.string().url().optional(),
+    fileName: z.string().optional(),
+    fileType: z.string().optional(),
+  })
+  .refine((b) => Boolean(b.submission?.trim()) || Boolean(b.fileUrl), {
+    message: "Cevap metni ya da dosya gerekli",
+  });
 
 // POST /api/assignments/:id/submit -> ogrenci odevini teslim eder.
 // Notlandirilmis bir odev tekrar teslim edilemez.
@@ -29,7 +39,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const alreadySubmitted = assignment.status === "SUBMITTED";
 
   await ref.update({
-    submission: body.submission.trim(),
+    submission: body.submission?.trim() || null,
+    fileUrl: body.fileUrl ?? null,
+    fileName: body.fileName ?? null,
+    fileType: body.fileType ?? null,
     submittedAt: new Date().toISOString(),
     status: "SUBMITTED",
   });

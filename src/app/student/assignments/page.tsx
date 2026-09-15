@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { LevelProgressCard, type LevelProgressData } from "@/components/level-badge";
+import { AssignmentAttachment } from "@/components/assignment-attachment";
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/uploads";
 import { PASS_SCORE, type Level } from "@/lib/levels";
 import { useTimezone } from "@/components/timezone-provider";
 import { formatDate as formatDateInZone } from "@/lib/timezone";
@@ -16,6 +19,8 @@ type Assignment = {
   level: Level;
   status: AssignmentStatus;
   submission: string | null;
+  fileName: string | null;
+  fileType: string | null;
   score: number | null;
   feedback: string | null;
   createdAt: string;
@@ -23,21 +28,49 @@ type Assignment = {
 
 function SubmitForm({ assignment, onSubmitted }: { assignment: Assignment; onSubmitted: () => void }) {
   const [text, setText] = useState(assignment.submission ?? "");
+  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasExistingFile = Boolean(assignment.fileName);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() && !file && !hasExistingFile) {
+      setError("Bir cevap yaz ya da dosya ekle.");
+      return;
+    }
+    if (file && file.size > MAX_UPLOAD_BYTES) {
+      setError(`Dosya en fazla ${MAX_UPLOAD_MB} MB olabilir.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
+      let uploaded: { url: string; name: string; type: string } | null = null;
+
+      if (file) {
+        // Dosya tarayicidan dogrudan Blob'a gider; sunucu sadece jeton uretir.
+        const blob = await upload(`odev/${assignment.id}/${file.name}`, file, {
+          access: "private",
+          handleUploadUrl: "/api/assignments/upload",
+        });
+        uploaded = { url: blob.url, name: file.name, type: file.type };
+      }
+
       const res = await fetch(`/api/assignments/${assignment.id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submission: text.trim() }),
+        body: JSON.stringify({
+          submission: text.trim() || undefined,
+          fileUrl: uploaded?.url,
+          fileName: uploaded?.name,
+          fileType: uploaded?.type,
+        }),
       });
       if (!res.ok) throw new Error();
+      setFile(null);
       onSubmitted();
     } catch {
       setError("Teslim edilemedi.");
@@ -50,13 +83,25 @@ function SubmitForm({ assignment, onSubmitted }: { assignment: Assignment; onSub
     <form onSubmit={handleSubmit} className="mt-4 border-t border-[var(--border)] pt-4">
       <label className="field-label">Cevabın</label>
       <textarea
-        placeholder="Ödevini buraya yaz ya da bir bağlantı paylaş."
+        placeholder="Ödevini buraya yaz ya da sadece dosya ekle."
         value={text}
         onChange={(e) => setText(e.target.value)}
         className="field"
         rows={4}
-        required
       />
+
+      <label className="field-label mt-4">Dosya ekle</label>
+      <input
+        type="file"
+        accept="image/*,audio/*,application/pdf"
+        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+        className="field file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-[var(--surface-strong)] file:px-3 file:py-1 file:text-sm file:text-[var(--text)]"
+      />
+      <p className="text-faint mt-1.5 text-xs">
+        Fotoğraf, ses kaydı veya PDF · en fazla {MAX_UPLOAD_MB} MB
+        {hasExistingFile && !file && ` · şu an ekli: ${assignment.fileName}`}
+      </p>
+
       {error && <p className="mt-2 text-sm text-[var(--bad)]">{error}</p>}
       <button type="submit" disabled={loading} className="btn btn-primary mt-3">
         {loading
@@ -125,6 +170,12 @@ export default function StudentAssignmentsPage() {
                 {a.status === "SUBMITTED" ? "Değerlendirme bekliyor" : "Teslim edilmedi"}
               </span>
             </div>
+
+            <AssignmentAttachment
+              assignmentId={a.id}
+              fileName={a.fileName}
+              fileType={a.fileType}
+            />
 
             <SubmitForm assignment={a} onSubmitted={load} />
           </li>
