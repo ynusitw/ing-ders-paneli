@@ -43,7 +43,7 @@ export default function TeacherRequestsPage() {
   const decided = requests.filter((r) => r.status !== "PENDING");
 
   return (
-    <main className="fade-up mx-auto max-w-3xl p-8">
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-6">Ders Talepleri</h1>
 
       {pending.length === 0 && (

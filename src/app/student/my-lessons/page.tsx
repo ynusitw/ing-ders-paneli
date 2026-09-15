@@ -85,7 +85,7 @@ export default function MyLessonsPage() {
   }
 
   return (
-    <main className="fade-up mx-auto max-w-3xl p-8">
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-6">Derslerim</h1>
 
       {error && <p className="glass-card mb-4 p-4 text-sm text-[var(--bad)]">{error}</p>}

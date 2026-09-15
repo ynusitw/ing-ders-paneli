@@ -70,7 +70,7 @@ export default function StudentFlashcardsPage() {
 
   if (cards === null) {
     return (
-      <main className="mx-auto max-w-xl p-8">
+      <main className="mx-auto max-w-xl p-5 sm:p-8">
         <p className="text-dim text-sm">Yükleniyor...</p>
       </main>
     );
@@ -78,7 +78,7 @@ export default function StudentFlashcardsPage() {
 
   if (cards.length === 0) {
     return (
-      <main className="fade-up mx-auto max-w-xl p-8">
+      <main className="fade-up mx-auto max-w-xl p-5 sm:p-8">
         <h1 className="page-title mb-1">Kelime Kartlarım</h1>
         <p className="text-dim glass-card mt-6 p-6 text-sm">
           Öğretmenin henüz sana kelime kartı eklemedi.
@@ -92,7 +92,7 @@ export default function StudentFlashcardsPage() {
   const progress = sessionSize === 0 ? 100 : (done / sessionSize) * 100;
 
   return (
-    <main className="fade-up mx-auto max-w-xl p-8">
+    <main className="fade-up mx-auto max-w-xl p-5 sm:p-8">
       <h1 className="page-title mb-1">Kelime Kartlarım</h1>
       <p className="page-subtitle mb-6">Toplam {cards.length} kelime</p>
 

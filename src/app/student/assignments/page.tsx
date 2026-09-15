@@ -92,7 +92,7 @@ export default function StudentAssignmentsPage() {
   const graded = assignments?.filter((a) => a.status === "GRADED") ?? [];
 
   return (
-    <main className="fade-up mx-auto max-w-3xl p-8">
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-1">Ödevlerim</h1>
       <p className="page-subtitle mb-7">
         Ödevlerini teslim et; öğretmenin verdiği notlar seviyeni yükseltir.

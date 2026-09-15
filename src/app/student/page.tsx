@@ -44,7 +44,7 @@ export default function StudentDashboard() {
   }, []);
 
   return (
-    <main className="fade-up mx-auto max-w-3xl p-8">
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <div className="mb-1 flex flex-wrap items-center gap-3">
         <h1 className="page-title">Öğrenci Paneli</h1>
         {level && <LevelBadge level={level} />}

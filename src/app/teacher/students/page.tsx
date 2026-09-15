@@ -145,7 +145,7 @@ export default function TeacherStudentsPage() {
   }, []);
 
   return (
-    <main className="fade-up mx-auto max-w-3xl p-8">
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-2">Öğrenci / Ders Takibi</h1>
       <p className="mb-4 text-dim text-sm">
         Bir dersi açarak öğrenciyle paylaştığın notları ve materyalleri görebilir, yenilerini ekleyebilirsin.

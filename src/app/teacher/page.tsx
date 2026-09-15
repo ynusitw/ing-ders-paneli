@@ -29,7 +29,7 @@ export default function TeacherDashboard() {
   }, []);
 
   return (
-    <main className="fade-up mx-auto max-w-3xl p-8">
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-1">Öğretmen Paneli</h1>
       <p className="page-subtitle mb-7">Taleplerini ve yaklaşan derslerini buradan takip et.</p>
 

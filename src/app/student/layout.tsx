@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
-import { NavBar } from "@/components/nav-bar";
-import { Header } from "@/components/header";
+import { AppShell } from "@/components/app-shell";
 
 const LINKS = [
   { href: "/student", label: "Panel", icon: "grid" },
@@ -18,12 +17,8 @@ export default async function StudentLayout({ children }: { children: React.Reac
   if (user.role !== "STUDENT") redirect("/teacher");
 
   return (
-    <div className="flex min-h-screen">
-      <NavBar links={[...LINKS]} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Header fullName={user.fullName} />
-        <div className="flex-1">{children}</div>
-      </div>
-    </div>
+    <AppShell links={[...LINKS]} fullName={user.fullName}>
+      {children}
+    </AppShell>
   );
 }

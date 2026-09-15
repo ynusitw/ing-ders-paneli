@@ -23,7 +23,7 @@ export default function MyRequestsPage() {
   }, []);
 
   return (
-    <main className="fade-up mx-auto max-w-3xl p-8">
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-6">Taleplerim</h1>
 
       {requests.length === 0 && <p className="text-dim text-sm">Henüz talep göndermedin.</p>}

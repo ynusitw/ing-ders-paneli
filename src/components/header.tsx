@@ -9,6 +9,8 @@ import { NotificationBell } from "@/components/notification-bell";
 
 type Props = {
   fullName: string;
+  // Dar ekranda navigasyon cekmecesini acar.
+  onMenuClick?: () => void;
 };
 
 function initialsOf(name: string) {
@@ -20,7 +22,7 @@ function initialsOf(name: string) {
     .join("");
 }
 
-export function Header({ fullName }: Props) {
+export function Header({ fullName, onMenuClick }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -42,10 +44,28 @@ export function Header({ fullName }: Props) {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-end gap-1 border-b border-[var(--border)] bg-[var(--bg-base)]/60 p-3 backdrop-blur-xl">
-      <NotificationBell />
+    <header className="sticky top-0 z-20 flex items-center gap-1 border-b border-[var(--border)] bg-[var(--bg-base)]/60 p-3 backdrop-blur-xl">
+      <button
+        onClick={onMenuClick}
+        aria-label="Menü"
+        className="grid h-9 w-9 place-items-center rounded-xl border border-transparent transition-colors hover:border-[var(--border)] hover:bg-[var(--surface)] md:hidden"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          className="h-5 w-5 opacity-80"
+        >
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
 
-      <div ref={menuRef} className="relative">
+      <div className="ml-auto flex items-center gap-1">
+        <NotificationBell />
+
+        <div ref={menuRef} className="relative">
         <button
           onClick={() => setOpen((o) => !o)}
           className="flex items-center gap-2.5 rounded-xl border border-transparent p-1.5 pr-3 text-sm transition-colors hover:border-[var(--border)] hover:bg-[var(--surface)]"
@@ -53,7 +73,7 @@ export function Header({ fullName }: Props) {
           <span className="grid h-8 w-8 place-items-center rounded-full bg-[linear-gradient(120deg,var(--accent-1),var(--accent-2)_55%,var(--accent-3))] text-xs font-bold text-[var(--accent-ink)] shadow-[0_8px_20px_-10px_var(--glow-hard)]">
             {initialsOf(fullName)}
           </span>
-          <span className="font-medium">{fullName}</span>
+          <span className="hidden font-medium sm:inline">{fullName}</span>
           <span className="text-faint text-[10px]">▼</span>
         </button>
 
@@ -92,6 +112,7 @@ export function Header({ fullName }: Props) {
             </button>
           </div>
         )}
+        </div>
       </div>
     </header>
   );

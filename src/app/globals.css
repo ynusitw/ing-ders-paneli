@@ -489,6 +489,10 @@
     animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
+  .slide-in-left {
+    animation: slide-in-left 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   .glow-ring {
     box-shadow: 0 0 0 1px var(--border) inset, 0 0 30px -12px var(--glow-hard);
   }
@@ -517,6 +521,15 @@
   }
 }
 
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
 @keyframes pulse-glow {
   0%,
   100% {
@@ -531,7 +544,8 @@
   body::before {
     animation: none;
   }
-  .fade-up {
+  .fade-up,
+  .slide-in-left {
     animation: none;
   }
   .btn::after {
