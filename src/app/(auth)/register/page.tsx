@@ -34,7 +34,8 @@ export default function RegisterPage() {
       const sessionRes = await fetch("/api/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
+        // Yeni kaydolan kullanıcı girişte kalsın.
+        body: JSON.stringify({ idToken, remember: true }),
       });
       if (!sessionRes.ok) throw new Error("Oturum oluşturulamadı");
 

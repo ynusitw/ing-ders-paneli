@@ -3,17 +3,21 @@ import { z } from "zod";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { SESSION_COOKIE } from "@/lib/constants";
 
-const SESSION_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000; // 5 gün
+// "Oturumumu açık tut" işaretliyse çerez kalıcı olur (Firebase oturum
+// çerezinin üst sınırı 14 gün); işaretli değilse tarayıcı kapanınca silinen
+// bir oturum çerezi yazılır ve token ömrü de kısa tutulur.
+const REMEMBERED_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+const SESSION_ONLY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-const sessionSchema = z.object({ idToken: z.string() });
+const sessionSchema = z.object({ idToken: z.string(), remember: z.boolean().optional() });
 
 // POST /api/session -> client'ın Firebase idToken'ını httpOnly oturum çerezine çevirir.
 export async function POST(req: NextRequest) {
-  const { idToken } = sessionSchema.parse(await req.json());
+  const { idToken, remember = false } = sessionSchema.parse(await req.json());
 
   const decoded = await adminAuth.verifyIdToken(idToken);
   const sessionCookie = await adminAuth.createSessionCookie(idToken, {
-    expiresIn: SESSION_MAX_AGE_MS,
+    expiresIn: remember ? REMEMBERED_MAX_AGE_MS : SESSION_ONLY_MAX_AGE_MS,
   });
 
   const userDoc = await adminDb.collection("users").doc(decoded.uid).get();
@@ -24,7 +28,8 @@ export async function POST(req: NextRequest) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: SESSION_MAX_AGE_MS / 1000,
+    // maxAge verilmezse tarayıcı kapandığında çerez silinir.
+    ...(remember ? { maxAge: REMEMBERED_MAX_AGE_MS / 1000 } : {}),
     path: "/",
   });
   return response;
