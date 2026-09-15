@@ -5,6 +5,7 @@ import { LESSON_STATUS_CLASS, LESSON_STATUS_LABEL, isRoomJoinable } from "@/lib/
 import { formatRange } from "@/lib/timezone";
 import { useTimezone } from "@/components/timezone-provider";
 import { LessonCountdown } from "@/components/lesson-countdown";
+import { LessonReport } from "@/components/lesson-report";
 
 type Lesson = {
   id: string;
@@ -12,6 +13,8 @@ type Lesson = {
   startTime: string;
   endTime: string;
   status: "SCHEDULED" | "COMPLETED" | "CANCELLED";
+  reportSummary: string | null;
+  reportNextGoal: string | null;
 };
 
 type Material = {
@@ -87,18 +90,13 @@ export default function MyLessonsPage() {
     }
   }
 
-  return (
-    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
-      <h1 className="page-title mb-6">Derslerim</h1>
+  // Yaklasan dersler ustte; biten dersler raporlariyla birlikte gecmiste birikir.
+  const upcoming = lessons.filter((l) => l.status === "SCHEDULED");
+  const past = lessons
+    .filter((l) => l.status !== "SCHEDULED")
+    .sort((a, b) => (a.startTime < b.startTime ? 1 : -1));
 
-      {error && <p className="glass-card mb-4 p-4 text-sm text-[var(--bad)]">{error}</p>}
-
-      {lessons.length === 0 && (
-        <p className="text-dim glass-card p-5 text-sm">Henüz onaylanmış dersin yok.</p>
-      )}
-
-      <ul className="flex flex-col gap-2">
-        {lessons.map((lesson) => (
+  const renderLesson = (lesson: Lesson) => (
           <li key={lesson.id} className="glass-card p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -136,14 +134,39 @@ export default function MyLessonsPage() {
                   )}
               </div>
             </div>
+            <LessonReport summary={lesson.reportSummary} nextGoal={lesson.reportNextGoal} />
+
             {openId === lesson.id && (
-              <div className="mt-3 border-t pt-3">
+              <div className="mt-3 border-t border-[var(--border)] pt-3">
                 <MaterialsList lessonId={lesson.id} />
               </div>
             )}
           </li>
-        ))}
-      </ul>
+  );
+
+  return (
+    <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
+      <h1 className="page-title mb-6">Derslerim</h1>
+
+      {error && <p className="glass-card mb-4 p-4 text-sm text-[var(--bad)]">{error}</p>}
+
+      {lessons.length === 0 && (
+        <p className="text-dim glass-card p-5 text-sm">Henüz onaylanmış dersin yok.</p>
+      )}
+
+      {upcoming.length > 0 && (
+        <>
+          <h2 className="section-title mb-3">Yaklaşan dersler</h2>
+          <ul className="mb-8 flex flex-col gap-3">{upcoming.map(renderLesson)}</ul>
+        </>
+      )}
+
+      {past.length > 0 && (
+        <>
+          <h2 className="section-title mb-3">Geçmiş dersler</h2>
+          <ul className="flex flex-col gap-3">{past.map(renderLesson)}</ul>
+        </>
+      )}
     </main>
   );
 }
