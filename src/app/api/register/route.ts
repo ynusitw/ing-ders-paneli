@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { DEFAULT_LEVEL } from "@/lib/levels";
+import { normalizeTimezone } from "@/lib/timezone";
 
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   fullName: z.string().min(1),
   role: z.enum(["TEACHER", "STUDENT"]),
+  timezone: z.string().optional(),
 });
 
 // POST /api/register -> Firebase Auth kullanıcısı + Firestore users/{uid} dokümanı
@@ -28,6 +30,7 @@ export async function POST(req: NextRequest) {
       email: body.email,
       fullName: body.fullName,
       role: body.role,
+      timezone: normalizeTimezone(body.timezone),
       createdAt: new Date().toISOString(),
       ...(body.role === "STUDENT" ? { level: DEFAULT_LEVEL } : {}),
     });

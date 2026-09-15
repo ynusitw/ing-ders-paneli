@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL, formatRange } from "@/lib/status";
+import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL } from "@/lib/status";
+import { formatRange } from "@/lib/timezone";
+import { useTimezone } from "@/components/timezone-provider";
 
 type LessonRequest = {
   id: string;
@@ -14,6 +16,7 @@ type LessonRequest = {
 };
 
 export default function MyRequestsPage() {
+  const tz = useTimezone();
   const [requests, setRequests] = useState<LessonRequest[]>([]);
 
   useEffect(() => {
@@ -37,7 +40,7 @@ export default function MyRequestsPage() {
                 {REQUEST_STATUS_LABEL[r.status]}
               </span>
             </div>
-            <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime)}</p>
+            <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime, tz)}</p>
             {r.studentNote && <p className="mt-1 text-dim text-sm italic">Notun: "{r.studentNote}"</p>}
             {r.teacherNote && (
               <p className="mt-1 text-sm text-gray-700">Öğretmen notu: "{r.teacherNote}"</p>

@@ -4,6 +4,8 @@
 // "hangi günler + hangi saat aralığı + ne kadar sürsün + kaç hafta boyunca" seçer,
 // biz bunu somut (gerçek tarihli) AvailabilitySlot'lara bölüp tek seferde yazıyoruz.
 import { useMemo, useState } from "react";
+import { useTimezone } from "@/components/timezone-provider";
+import { dayKeyInZone, timezoneLabel, weekdayInZone, zonedTimeToUtc } from "@/lib/timezone";
 
 const WEEKDAYS = [
   { value: 1, short: "Pzt", label: "Pazartesi" },
@@ -37,18 +39,22 @@ function timeToMinutes(t: string) {
   return h * 60 + m;
 }
 
+// Saatler ogretmenin saat diliminde "duvar saati" olarak yorumlanir: "Pazartesi
+// 18:00" yaz saati gecse de her hafta 18:00'de kalir, UTC karsiligi kayar.
 function computeSlots({
   weekdays,
   startTime,
   endTime,
   durationMin,
   weeksAhead,
+  timeZone,
 }: {
   weekdays: number[];
   startTime: string;
   endTime: string;
   durationMin: number;
   weeksAhead: number;
+  timeZone: string;
 }) {
   const startMin = timeToMinutes(startTime);
   const endMin = timeToMinutes(endTime);
@@ -58,17 +64,15 @@ function computeSlots({
   const now = new Date();
 
   for (let dayOffset = 0; dayOffset < weeksAhead * 7; dayOffset++) {
-    const day = new Date(now);
-    day.setDate(day.getDate() + dayOffset);
-    day.setHours(0, 0, 0, 0);
-    if (!weekdays.includes(day.getDay())) continue;
+    const day = new Date(now.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+    if (!weekdays.includes(weekdayInZone(day, timeZone))) continue;
+
+    const [year, month, date] = dayKeyInZone(day.toISOString(), timeZone).split("-").map(Number);
 
     for (let m = startMin; m + durationMin <= endMin; m += durationMin) {
-      const slotStart = new Date(day);
-      slotStart.setMinutes(m);
+      const slotStart = zonedTimeToUtc(year, month, date, Math.floor(m / 60), m % 60, timeZone);
       if (slotStart <= now) continue;
-      const slotEnd = new Date(slotStart);
-      slotEnd.setMinutes(slotStart.getMinutes() + durationMin);
+      const slotEnd = new Date(slotStart.getTime() + durationMin * 60 * 1000);
       results.push({ startTime: slotStart.toISOString(), endTime: slotEnd.toISOString() });
     }
   }
@@ -90,10 +94,11 @@ export function AvailabilityBuilder({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const timeZone = useTimezone();
 
   const candidates = useMemo(
-    () => computeSlots({ weekdays, startTime, endTime, durationMin: duration, weeksAhead }),
-    [weekdays, startTime, endTime, duration, weeksAhead]
+    () => computeSlots({ weekdays, startTime, endTime, durationMin: duration, weeksAhead, timeZone }),
+    [weekdays, startTime, endTime, duration, weeksAhead, timeZone]
   );
   const newSlots = useMemo(
     () => candidates.filter((c) => !existingStartTimes.has(c.startTime)),
@@ -146,7 +151,10 @@ export function AvailabilityBuilder({
       onSubmit={handleSubmit}
       className="glass-card fade-up mb-8 p-6"
     >
-      <p className="field-label mb-3">Hangi günler?</p>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="field-label mb-0">Hangi günler?</p>
+        <span className="text-faint text-xs">Saatler {timezoneLabel(timeZone)} dilimine göre</span>
+      </div>
       <div className="mb-5 flex flex-wrap gap-2">
         {WEEKDAYS.map((day) => {
           const selected = weekdays.includes(day.value);

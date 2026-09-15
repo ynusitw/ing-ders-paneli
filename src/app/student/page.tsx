@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL, formatRange, isRoomJoinable } from "@/lib/status";
+import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL, isRoomJoinable } from "@/lib/status";
+import { formatRange } from "@/lib/timezone";
+import { useTimezone } from "@/components/timezone-provider";
 import { LessonCountdown } from "@/components/lesson-countdown";
 import { LevelBadge } from "@/components/level-badge";
 import type { Level } from "@/lib/levels";
@@ -16,6 +18,7 @@ type LessonRequest = {
 type Lesson = { id: string; teacherName: string; startTime: string; endTime: string; status: string };
 
 export default function StudentDashboard() {
+  const tz = useTimezone();
   const [pending, setPending] = useState<LessonRequest[]>([]);
   const [next, setNext] = useState<Lesson | null>(null);
   const [level, setLevel] = useState<Level | null>(null);
@@ -56,7 +59,7 @@ export default function StudentDashboard() {
         <div className="glass-card glass-card-interactive mb-8 flex items-center justify-between gap-4 p-5">
           <div className="min-w-0">
             <span className="font-semibold">{next.teacherName}</span>
-            <p className="text-dim text-sm">{formatRange(next.startTime, next.endTime)}</p>
+            <p className="text-dim text-sm">{formatRange(next.startTime, next.endTime, tz)}</p>
           </div>
           <LessonCountdown lessonId={next.id} startTime={next.startTime} endTime={next.endTime} />
         </div>
@@ -76,7 +79,7 @@ export default function StudentDashboard() {
           >
             <div className="min-w-0">
               <span className="font-semibold">{r.teacherName}</span>
-              <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime)}</p>
+              <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime, tz)}</p>
             </div>
             <span className={`badge ${REQUEST_STATUS_CLASS[r.status]}`}>
               {REQUEST_STATUS_LABEL[r.status]}

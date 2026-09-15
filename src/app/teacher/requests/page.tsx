@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL, formatRange } from "@/lib/status";
+import { REQUEST_STATUS_CLASS, REQUEST_STATUS_LABEL } from "@/lib/status";
+import { formatRange } from "@/lib/timezone";
+import { useTimezone } from "@/components/timezone-provider";
 
 type LessonRequest = {
   id: string;
@@ -13,6 +15,7 @@ type LessonRequest = {
 };
 
 export default function TeacherRequestsPage() {
+  const tz = useTimezone();
   const [requests, setRequests] = useState<LessonRequest[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -58,7 +61,7 @@ export default function TeacherRequestsPage() {
                 {REQUEST_STATUS_LABEL[r.status]}
               </span>
             </div>
-            <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime)}</p>
+            <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime, tz)}</p>
             {r.studentNote && <p className="mt-1 text-dim text-sm italic">"{r.studentNote}"</p>}
             <div className="mt-3 flex gap-2">
               <button
@@ -88,7 +91,7 @@ export default function TeacherRequestsPage() {
               <li key={r.id} className="flex items-center justify-between glass-card p-4">
                 <div>
                   <span className="font-medium">{r.studentName}</span>
-                  <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime)}</p>
+                  <p className="text-dim text-sm">{formatRange(r.startTime, r.endTime, tz)}</p>
                 </div>
                 <span className={`badge ${REQUEST_STATUS_CLASS[r.status]}`}>
                   {REQUEST_STATUS_LABEL[r.status]}

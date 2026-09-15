@@ -39,6 +39,7 @@ export default async function RoomPage({ params }: { params: { lessonId: string 
       leaveHref={isTeacher ? "/teacher/lessons" : "/student/my-lessons"}
       startTime={lesson.startTime}
       endTime={lesson.endTime}
+      timezone={user.timezone}
     />
   );
 }

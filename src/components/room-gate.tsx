@@ -9,6 +9,7 @@ import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { clientDb } from "@/lib/firebase-client";
 import { VideoRoom } from "@/components/video-room";
 import { randomIdiom } from "@/lib/idioms";
+import { formatDateTime } from "@/lib/timezone";
 
 type Props = {
   roomId: string;
@@ -18,6 +19,7 @@ type Props = {
   leaveHref: string;
   startTime: string;
   endTime: string;
+  timezone: string;
 };
 
 export function RoomGate({
@@ -28,6 +30,7 @@ export function RoomGate({
   leaveHref,
   startTime,
   endTime,
+  timezone,
 }: Props) {
   const startMs = new Date(startTime).getTime();
   // Date.now() sunucu render'ı ile istemci hydration'ı arasında farklı değer
@@ -82,11 +85,10 @@ export function RoomGate({
   }
 
   if (isEarly && !admitted) {
-    const start = new Date(startTime);
     return (
       <main className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-900 px-6 text-center text-white">
         <p className="text-lg font-medium">Ders henüz başlamadı</p>
-        <p className="text-sm text-gray-400">Başlangıç saati: {start.toLocaleString("tr-TR")}</p>
+        <p className="text-sm text-gray-400">Başlangıç saati: {formatDateTime(startTime, timezone)}</p>
         <p className="max-w-sm text-sm text-gray-400">
           Katılma isteğin {remoteName} öğretmenine gönderildi. Kabul edilince ya da ders saati gelince
           otomatik olarak derse gireceksin.

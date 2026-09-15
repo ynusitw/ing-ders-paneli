@@ -8,19 +8,82 @@ import {
 } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase-client";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
+import { COMMON_TIMEZONES, detectTimezone, timezoneLabel } from "@/lib/timezone";
 
 type Props = {
   initialFullName: string;
   email: string;
+  initialTimezone: string;
 };
 
-export function SettingsForm({ initialFullName, email }: Props) {
+export function SettingsForm({ initialFullName, email, initialTimezone }: Props) {
   return (
     <div className="flex flex-col gap-8">
       <NameSection initialFullName={initialFullName} />
+      <TimezoneSection initialTimezone={initialTimezone} />
       <PasswordSection email={email} />
       <ThemeSection />
     </div>
+  );
+}
+
+function TimezoneSection({ initialTimezone }: { initialTimezone: string }) {
+  const [timezone, setTimezone] = useState(initialTimezone);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [detected, setDetected] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDetected(detectTimezone());
+  }, []);
+
+  // Kullanicinin kendi dilimi hazir listede yoksa da secilebilir kalmali.
+  const options = Array.from(
+    new Set([...COMMON_TIMEZONES, timezone, ...(detected ? [detected] : [])])
+  ).sort();
+
+  async function save(next: string) {
+    setTimezone(next);
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone: next }),
+      });
+      if (!res.ok) throw new Error();
+      setStatus("success");
+      // Saat dilimi sunucudan okunup tum sayfalara dagitildigi icin yenilemek gerekiyor.
+      window.location.reload();
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  return (
+    <section>
+      <h2 className="section-title mb-3">Saat Dilimi</h2>
+      <p className="text-dim mb-3 text-sm">
+        Tüm ders saatleri ve tarihler bu dilime göre gösterilir.
+      </p>
+
+      <select value={timezone} onChange={(e) => save(e.target.value)} className="field">
+        {options.map((zone) => (
+          <option key={zone} value={zone}>
+            {timezoneLabel(zone)}
+          </option>
+        ))}
+      </select>
+
+      {detected && detected !== timezone && (
+        <button onClick={() => save(detected)} className="btn btn-ghost btn-sm mt-3">
+          Cihazımın dilimini kullan ({detected})
+        </button>
+      )}
+
+      {status === "error" && (
+        <p className="mt-2 text-sm text-[var(--bad)]">Saat dilimi kaydedilemedi.</p>
+      )}
+    </section>
   );
 }
 

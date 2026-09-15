@@ -18,7 +18,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   if (user.role !== "TEACHER") redirect("/student");
 
   return (
-    <AppShell links={[...LINKS]} fullName={user.fullName}>
+    <AppShell links={[...LINKS]} fullName={user.fullName} timezone={user.timezone}>
       {children}
     </AppShell>
   );

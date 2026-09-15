@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
-import { notify } from "@/lib/notifications";
-import { formatRange } from "@/lib/status";
+import { notify, getUserTimezone } from "@/lib/notifications";
+import { formatRange } from "@/lib/timezone";
 
 const createRequestSchema = z.object({
   slotId: z.string(),
@@ -71,11 +71,12 @@ export async function POST(req: NextRequest) {
     };
   });
 
+  const teacherZone = await getUserTimezone(result.teacherId);
   await notify({
     userId: result.teacherId,
     type: "REQUEST_CREATED",
     title: "Yeni ders talebi",
-    body: `${user.fullName}, ${formatRange(result.startTime, result.endTime)} için ders talep etti.`,
+    body: `${user.fullName}, ${formatRange(result.startTime, result.endTime, teacherZone)} için ders talep etti.`,
     href: "/teacher/requests",
   });
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTimezone } from "@/components/timezone-provider";
+import { formatDate } from "@/lib/timezone";
 
 type LessonStudent = { studentId: string; studentName: string };
 
@@ -13,10 +15,10 @@ type Card = {
   dueDate: string;
 };
 
-function formatDue(iso: string) {
+function formatDue(iso: string, timeZone: string) {
   const d = new Date(iso);
   if (d <= new Date()) return "bugün tekrar sırasında";
-  return `${d.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} tarihinde`;
+  return `${formatDate(iso, timeZone)} tarihinde`;
 }
 
 function CardForm({ studentId, onAdded }: { studentId: string; onAdded: () => void }) {
@@ -100,6 +102,7 @@ function CardForm({ studentId, onAdded }: { studentId: string; onAdded: () => vo
 }
 
 export default function TeacherFlashcardsPage() {
+  const tz = useTimezone();
   const [students, setStudents] = useState<LessonStudent[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [cards, setCards] = useState<Card[]>([]);
@@ -183,7 +186,7 @@ export default function TeacherFlashcardsPage() {
                   {card.example && <p className="text-dim mt-0.5 text-sm italic">{card.example}</p>}
                   <p className="text-faint mt-1.5 text-xs">
                     {card.repetitions === 0 ? "Henüz tekrar edilmedi" : `${card.repetitions}. tekrar tamamlandı`} ·
-                    sıradaki tekrar {formatDue(card.dueDate)}
+                    sıradaki tekrar {formatDue(card.dueDate, tz)}
                   </p>
                 </div>
                 <button onClick={() => handleDelete(card.id)} className="btn btn-danger btn-sm shrink-0">

@@ -1,5 +1,12 @@
 import { adminDb } from "@/lib/firebase-admin";
+import { normalizeTimezone } from "@/lib/timezone";
 import type { NotificationType } from "@/types";
+
+// Bildirim metinlerindeki saatler aliciya kendi saat diliminde gosterilmeli.
+export async function getUserTimezone(userId: string) {
+  const snap = await adminDb.collection("users").doc(userId).get();
+  return normalizeTimezone(snap.data()?.timezone);
+}
 
 type NewNotification = {
   userId: string;

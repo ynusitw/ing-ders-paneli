@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { LevelProgressCard, type LevelProgressData } from "@/components/level-badge";
 import { PASS_SCORE, type Level } from "@/lib/levels";
+import { useTimezone } from "@/components/timezone-provider";
+import { formatDate as formatDateInZone } from "@/lib/timezone";
 import type { AssignmentStatus } from "@/types";
 
 type LessonStudent = { studentId: string; studentName: string };
@@ -26,10 +28,6 @@ const STATUS_BADGE: Record<AssignmentStatus, { label: string; className: string 
   SUBMITTED: { label: "Değerlendirme bekliyor", className: "badge-amber" },
   GRADED: { label: "Değerlendirildi", className: "badge-emerald" },
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
-}
 
 function AssignmentForm({ studentId, onCreated }: { studentId: string; onCreated: () => void }) {
   const [title, setTitle] = useState("");
@@ -190,6 +188,7 @@ function GradeForm({
 }
 
 export default function TeacherAssignmentsPage() {
+  const tz = useTimezone();
   const [students, setStudents] = useState<LessonStudent[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -300,7 +299,7 @@ export default function TeacherAssignmentsPage() {
                     <p className="text-dim mt-0.5 text-sm">{a.description}</p>
                     <p className="text-faint mt-1.5 text-xs">
                       {a.level} seviyesi
-                      {a.dueDate && ` · son teslim ${formatDate(a.dueDate)}`}
+                      {a.dueDate && ` · son teslim ${formatDateInZone(a.dueDate, tz)}`}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">

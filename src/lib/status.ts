@@ -22,15 +22,6 @@ export const LESSON_STATUS_CLASS = {
   CANCELLED: "badge-rose",
 } as const;
 
-export function formatRange(startTime: string, endTime: string) {
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-  return `${start.toLocaleString("tr-TR")} — ${end.toLocaleTimeString("tr-TR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}`;
-}
-
 // Ders bitiş saatinden bir süre sonra video odasına tekrar girilemez (bkz.
 // src/app/room/[lessonId]/page.tsx). Aynı tolerans payı burada da kullanılır ki
 // ders listelerindeki "Odaya Gir" butonu, girilemeyecek bir ders için görünmesin.

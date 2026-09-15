@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { LevelProgressCard, type LevelProgressData } from "@/components/level-badge";
 import { PASS_SCORE, type Level } from "@/lib/levels";
+import { useTimezone } from "@/components/timezone-provider";
+import { formatDate as formatDateInZone } from "@/lib/timezone";
 import type { AssignmentStatus } from "@/types";
 
 type Assignment = {
@@ -18,10 +20,6 @@ type Assignment = {
   feedback: string | null;
   createdAt: string;
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
-}
 
 function SubmitForm({ assignment, onSubmitted }: { assignment: Assignment; onSubmitted: () => void }) {
   const [text, setText] = useState(assignment.submission ?? "");
@@ -72,6 +70,7 @@ function SubmitForm({ assignment, onSubmitted }: { assignment: Assignment; onSub
 }
 
 export default function StudentAssignmentsPage() {
+  const tz = useTimezone();
   const [assignments, setAssignments] = useState<Assignment[] | null>(null);
   const [progress, setProgress] = useState<LevelProgressData | null>(null);
 
@@ -117,7 +116,7 @@ export default function StudentAssignmentsPage() {
                 <p className="text-dim mt-0.5 text-sm">{a.description}</p>
                 <p className="text-faint mt-1.5 text-xs">
                   {a.teacherName} · {a.level} seviyesi
-                  {a.dueDate && ` · son teslim ${formatDate(a.dueDate)}`}
+                  {a.dueDate && ` · son teslim ${formatDateInZone(a.dueDate, tz)}`}
                 </p>
               </div>
               <span

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LESSON_STATUS_CLASS, LESSON_STATUS_LABEL, formatRange, isRoomJoinable } from "@/lib/status";
+import { LESSON_STATUS_CLASS, LESSON_STATUS_LABEL, isRoomJoinable } from "@/lib/status";
+import { formatRange } from "@/lib/timezone";
+import { useTimezone } from "@/components/timezone-provider";
 import { LessonCountdown } from "@/components/lesson-countdown";
 
 type Lesson = {
@@ -13,6 +15,7 @@ type Lesson = {
 };
 
 export default function TeacherLessonsPage() {
+  const tz = useTimezone();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +69,7 @@ export default function TeacherLessonsPage() {
             <li key={lesson.id} className="glass-card flex flex-wrap items-center justify-between gap-3 p-4">
               <div className="min-w-0">
                 <span className="font-semibold">{lesson.studentName}</span>
-                <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
+                <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime, tz)}</p>
                 <span className={`badge mt-1 ${LESSON_STATUS_CLASS[lesson.status]}`}>
                   {LESSON_STATUS_LABEL[lesson.status]}
                 </span>

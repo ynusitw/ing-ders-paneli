@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTimezone } from "@/components/timezone-provider";
+import { formatDateTime, formatTime, timezoneLabel } from "@/lib/timezone";
 
 type Teacher = { id: string; fullName: string; email: string };
 type Slot = { id: string; startTime: string; endTime: string };
 
 export default function RequestLessonPage() {
+  const tz = useTimezone();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [teacherId, setTeacherId] = useState("");
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -52,7 +55,9 @@ export default function RequestLessonPage() {
   return (
     <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-1">Ders Talep Et</h1>
-      <p className="page-subtitle mb-7">Öğretmenini seç, müsait bir saate talep gönder.</p>
+      <p className="page-subtitle mb-7">
+        Öğretmenini seç, müsait bir saate talep gönder. Saatler {timezoneLabel(tz)} dilimine göre.
+      </p>
 
       <div className="glass-card mb-6 p-5">
         <label className="field-label">Öğretmen</label>
@@ -87,11 +92,7 @@ export default function RequestLessonPage() {
                       : ""
                   }`}
                 >
-                  {new Date(slot.startTime).toLocaleString("tr-TR")} —{" "}
-                  {new Date(slot.endTime).toLocaleTimeString("tr-TR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {formatDateTime(slot.startTime, tz)} — {formatTime(slot.endTime, tz)}
                 </button>
               </li>
             ))}

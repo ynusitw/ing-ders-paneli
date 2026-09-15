@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { NavContent, type NavIcon } from "@/components/nav-bar";
 import { Header } from "@/components/header";
+import { TimezoneProvider } from "@/components/timezone-provider";
 
 type NavLink = { href: string; label: string; icon: NavIcon };
 
@@ -12,10 +13,12 @@ type NavLink = { href: string; label: string; icon: NavIcon };
 export function AppShell({
   links,
   fullName,
+  timezone,
   children,
 }: {
   links: NavLink[];
   fullName: string;
+  timezone: string;
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -44,6 +47,7 @@ export function AppShell({
   }, [open]);
 
   return (
+    <TimezoneProvider timezone={timezone}>
     <div className="flex min-h-screen">
       <nav className="glass-card sticky top-0 hidden h-screen w-56 shrink-0 flex-col gap-1 rounded-none border-y-0 border-l-0 p-4 md:flex">
         <NavContent links={links} />
@@ -67,5 +71,6 @@ export function AppShell({
         <div className="flex-1">{children}</div>
       </div>
     </div>
+    </TimezoneProvider>
   );
 }

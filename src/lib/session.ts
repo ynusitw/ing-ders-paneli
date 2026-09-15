@@ -3,6 +3,7 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { SESSION_COOKIE } from "@/lib/constants";
 import type { Role } from "@/types";
 import { normalizeLevel, type Level } from "@/lib/levels";
+import { normalizeTimezone } from "@/lib/timezone";
 
 export { SESSION_COOKIE };
 
@@ -13,6 +14,8 @@ export type CurrentUser = {
   role: Role;
   // Sadece ogrenciler icin anlamli; eski kayitlarda alan yoksa A1 kabul edilir.
   level: Level;
+  // IANA saat dilimi; tum tarih/saat gosterimi buna gore yapilir.
+  timezone: string;
 };
 
 // Node.js runtime'da (API route / server component) çağrılır; Edge middleware
@@ -35,6 +38,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       fullName: data.fullName,
       role: data.role,
       level: normalizeLevel(data.level),
+      timezone: normalizeTimezone(data.timezone),
     };
   } catch {
     return null;

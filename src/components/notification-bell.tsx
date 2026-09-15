@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTimezone } from "@/components/timezone-provider";
+import { formatDate } from "@/lib/timezone";
 import type { NotificationType } from "@/types";
 
 type Notification = {
@@ -28,7 +30,7 @@ const TYPE_ICON: Record<NotificationType, string> = {
   LESSON_COMPLETED: "🏁",
 };
 
-function formatRelative(iso: string) {
+function formatRelative(iso: string, timeZone: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.floor(diffMs / 60000);
   if (minutes < 1) return "az önce";
@@ -37,10 +39,11 @@ function formatRelative(iso: string) {
   if (hours < 24) return `${hours} sa önce`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days} gün önce`;
-  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+  return formatDate(iso, timeZone);
 }
 
 export function NotificationBell() {
+  const tz = useTimezone();
   const router = useRouter();
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -136,7 +139,7 @@ export function NotificationBell() {
                       <span className="block text-sm font-semibold">{n.title}</span>
                       {n.body && <span className="text-dim mt-0.5 block text-xs">{n.body}</span>}
                       <span className="text-faint mt-1 block text-[11px]">
-                        {formatRelative(n.createdAt)}
+                        {formatRelative(n.createdAt, tz)}
                       </span>
                     </span>
                     {!n.read && (

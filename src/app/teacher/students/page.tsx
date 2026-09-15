@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatRange } from "@/lib/status";
+import { formatRange } from "@/lib/timezone";
+import { useTimezone } from "@/components/timezone-provider";
 
 type Lesson = {
   id: string;
@@ -90,6 +91,7 @@ function MaterialForm({ lessonId, onAdded }: { lessonId: string; onAdded: () => 
 }
 
 function LessonCard({ lesson }: { lesson: Lesson }) {
+  const tz = useTimezone();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -107,7 +109,7 @@ function LessonCard({ lesson }: { lesson: Lesson }) {
     <li className="glass-card p-4">
       <button onClick={() => setOpen((o) => !o)} className="w-full text-left">
         <span className="font-medium">{lesson.studentName}</span>
-        <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
+        <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime, tz)}</p>
       </button>
 
       {open && (

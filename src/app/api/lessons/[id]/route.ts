@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
-import { notify } from "@/lib/notifications";
-import { formatRange } from "@/lib/status";
+import { notify, getUserTimezone } from "@/lib/notifications";
+import { formatRange } from "@/lib/timezone";
 
 const updateLessonSchema = z.object({ status: z.enum(["COMPLETED", "CANCELLED"]) });
 
@@ -43,7 +43,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const now = Date.now();
-  const range = formatRange(lesson.startTime, lesson.endTime);
 
   if (status === "COMPLETED") {
     if (!isTeacher) {
@@ -54,11 +53,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     await ref.update({ status: "COMPLETED", completedAt: new Date().toISOString() });
+    const studentZone = await getUserTimezone(lesson.studentId);
     await notify({
       userId: lesson.studentId,
       type: "LESSON_COMPLETED",
       title: "Ders tamamlandı",
-      body: `${lesson.teacherName} ile dersin tamamlandı olarak işaretlendi (${range}).`,
+      body: `${lesson.teacherName} ile dersin tamamlandı olarak işaretlendi (${formatRange(lesson.startTime, lesson.endTime, studentZone)}).`,
       href: "/student/my-lessons",
     });
 
@@ -76,11 +76,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   });
   await reopenSlot(lesson.requestId);
 
+  const recipientId = isTeacher ? lesson.studentId : lesson.teacherId;
+  const recipientZone = await getUserTimezone(recipientId);
   await notify({
-    userId: isTeacher ? lesson.studentId : lesson.teacherId,
+    userId: recipientId,
     type: "LESSON_CANCELLED",
     title: "Ders iptal edildi",
-    body: `${user.fullName} ${range} dersini iptal etti.`,
+    body: `${user.fullName}, ${formatRange(lesson.startTime, lesson.endTime, recipientZone)} dersini iptal etti.`,
     href: isTeacher ? "/student/my-lessons" : "/teacher/lessons",
   });
 

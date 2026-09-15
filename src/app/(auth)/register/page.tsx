@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithCustomToken } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase-client";
+import { detectTimezone } from "@/lib/timezone";
 import type { Role } from "@/types";
 
 export default function RegisterPage() {
@@ -23,7 +24,7 @@ export default function RegisterPage() {
       const registerRes = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, fullName, role }),
+        body: JSON.stringify({ email, password, fullName, role, timezone: detectTimezone() }),
       });
       if (!registerRes.ok) throw new Error("Kayıt başarısız");
       const { customToken } = await registerRes.json();

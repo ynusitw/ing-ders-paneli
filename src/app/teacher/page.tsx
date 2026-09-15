@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { formatRange, isRoomJoinable } from "@/lib/status";
+import { isRoomJoinable } from "@/lib/status";
+import { formatRange } from "@/lib/timezone";
+import { useTimezone } from "@/components/timezone-provider";
 import { LessonCountdown } from "@/components/lesson-countdown";
 
 type LessonRequest = { status: "PENDING" | "APPROVED" | "REJECTED" };
 type Lesson = { id: string; studentName: string; startTime: string; endTime: string; status: string };
 
 export default function TeacherDashboard() {
+  const tz = useTimezone();
   const [pendingCount, setPendingCount] = useState(0);
   const [upcoming, setUpcoming] = useState<Lesson[]>([]);
 
@@ -59,7 +62,7 @@ export default function TeacherDashboard() {
           >
             <div className="min-w-0">
               <span className="font-semibold">{lesson.studentName}</span>
-              <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
+              <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime, tz)}</p>
             </div>
             <LessonCountdown lessonId={lesson.id} startTime={lesson.startTime} endTime={lesson.endTime} />
           </li>

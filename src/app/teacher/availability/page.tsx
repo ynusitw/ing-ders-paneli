@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AvailabilityBuilder } from "@/components/availability-builder";
+import { useTimezone } from "@/components/timezone-provider";
+import { dayKeyInZone, formatDayHeader, formatTime, timezoneLabel } from "@/lib/timezone";
 
 type Slot = {
   id: string;
@@ -24,19 +26,8 @@ const STATUS_CHIP_CLASS: Record<Slot["status"], string> = {
   BOOKED: "slot-booked cursor-default",
 };
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
-}
-
-function formatDayHeader(iso: string) {
-  return new Date(iso).toLocaleDateString("tr-TR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-}
-
 export default function AvailabilityPage() {
+  const tz = useTimezone();
   const [teacherId, setTeacherId] = useState<string | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -71,18 +62,21 @@ export default function AvailabilityPage() {
     );
     const map = new Map<string, Slot[]>();
     for (const slot of sorted) {
-      const dayKey = slot.startTime.slice(0, 10);
+      // Gruplama UTC tarihine göre değil, öğretmenin saat dilimindeki takvim
+      // gününe göre yapılmalı; gece yarısına yakın slotlar aksi halde yanlış
+      // günün altına düşüyordu.
+      const dayKey = dayKeyInZone(slot.startTime, tz);
       if (!map.has(dayKey)) map.set(dayKey, []);
       map.get(dayKey)!.push(slot);
     }
     return Array.from(map.entries());
-  }, [slots]);
+  }, [slots, tz]);
 
   return (
     <main className="fade-up mx-auto max-w-3xl p-5 sm:p-8">
       <h1 className="page-title mb-1">Müsaitlik Yönetimi</h1>
       <p className="page-subtitle mb-7">
-        Haftalık müsaitliğini toplu oluştur, boş slotlara tıklayarak kaldır.
+        Haftalık müsaitliğini toplu oluştur, boş slotlara tıklayarak kaldır. Saatler {timezoneLabel(tz)} dilimine göre gösteriliyor.
       </p>
 
       {teacherId && (
@@ -102,7 +96,7 @@ export default function AvailabilityPage() {
         {groupedByDay.map(([dayKey, daySlots]) => (
           <div key={dayKey}>
             <h2 className="section-title mb-3 capitalize">
-              {formatDayHeader(daySlots[0].startTime)}
+              {formatDayHeader(daySlots[0].startTime, tz)}
             </h2>
             <div className="flex flex-wrap gap-2">
               {daySlots.map((slot) => (
@@ -114,7 +108,7 @@ export default function AvailabilityPage() {
                   title={slot.status === "OPEN" ? "Silmek için tıkla" : STATUS_LABEL[slot.status]}
                   className={`chip tabular-nums ${STATUS_CHIP_CLASS[slot.status]}`}
                 >
-                  {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
+                  {formatTime(slot.startTime, tz)}–{formatTime(slot.endTime, tz)}
                   {slot.status !== "OPEN" && (
                     <span className="ml-1.5 text-xs opacity-75">· {STATUS_LABEL[slot.status]}</span>
                   )}

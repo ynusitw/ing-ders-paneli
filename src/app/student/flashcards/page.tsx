@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { REVIEW_QUALITY, type ReviewQuality } from "@/lib/spaced-repetition";
+import { useTimezone } from "@/components/timezone-provider";
+import { formatDate } from "@/lib/timezone";
 
 type Card = {
   id: string;
@@ -18,11 +20,12 @@ const QUALITY_BUTTONS: { quality: ReviewQuality; label: string; gradient: string
   { quality: REVIEW_QUALITY.EASY, label: "Kolay", gradient: "linear-gradient(120deg,#22d3ee,#6366f1)" },
 ];
 
-function formatNextDue(iso: string) {
-  return new Date(iso).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+function formatNextDue(iso: string, timeZone: string) {
+  return formatDate(iso, timeZone);
 }
 
 export default function StudentFlashcardsPage() {
+  const tz = useTimezone();
   const [cards, setCards] = useState<Card[] | null>(null);
   const [queue, setQueue] = useState<Card[]>([]);
   const [revealed, setRevealed] = useState(false);
@@ -122,7 +125,7 @@ export default function StudentFlashcardsPage() {
           </p>
           {nextUpcoming && (
             <p className="text-dim mt-2 text-sm">
-              Sıradaki tekrar {formatNextDue(nextUpcoming.dueDate)} tarihinde hazır olacak.
+              Sıradaki tekrar {formatNextDue(nextUpcoming.dueDate, tz)} tarihinde hazır olacak.
             </p>
           )}
         </div>

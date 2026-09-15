@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
-import { notify } from "@/lib/notifications";
-import { formatRange } from "@/lib/status";
+import { notify, getUserTimezone } from "@/lib/notifications";
+import { formatRange } from "@/lib/timezone";
 
 const decisionSchema = z.object({
   decision: z.enum(["APPROVED", "REJECTED"]),
@@ -62,7 +62,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   });
 
   const { request } = result;
-  const range = formatRange(request.startTime, request.endTime);
+  const studentZone = await getUserTimezone(request.studentId);
+  const range = formatRange(request.startTime, request.endTime, studentZone);
   await notify(
     body.decision === "APPROVED"
       ? {
