@@ -27,6 +27,11 @@ export const LESSON_STATUS_CLASS = {
 // ders listelerindeki "Odaya Gir" butonu, girilemeyecek bir ders için görünmesin.
 export const ROOM_GRACE_PERIOD_MS = 15 * 60 * 1000;
 
+// Ders saatinden ne kadar once odaya gidilebilecegi. Ogretmen bu pencerede
+// dogrudan girer; ogrenci bekleme odasina dusup katilim istegi gonderir
+// (bkz. src/components/room-gate.tsx).
+export const ROOM_EARLY_JOIN_MS = 10 * 60 * 1000;
+
 export function isRoomJoinable(lesson: { status: string; endTime: string }) {
   if (lesson.status === "CANCELLED") return false;
   return Date.now() <= new Date(lesson.endTime).getTime() + ROOM_GRACE_PERIOD_MS;

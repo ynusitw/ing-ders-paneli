@@ -171,6 +171,7 @@ export default function TeacherLessonsPage() {
                       lessonId={lesson.id}
                       startTime={lesson.startTime}
                       endTime={lesson.endTime}
+                      isTeacher
                     />
                   )}
                   {lesson.status === "SCHEDULED" && started && !isReporting && (

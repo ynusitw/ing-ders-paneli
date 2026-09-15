@@ -1,13 +1,15 @@
 "use client";
 
-// Ders listelerinde kalan süreyi canlı gösterir; ders başlamasına 5 dakikadan
-// az kaldığında (ya da ders zaten başladıysa, tolerans süresi içindeyse)
-// dikkat çekici bir "Derse Katıl" butonuna dönüşür.
+// Ders listelerinde kalan süreyi canlı gösterir; ders saatine ROOM_EARLY_JOIN_MS
+// kala (ya da ders zaten başladıysa, tolerans süresi içindeyse) dikkat çekici
+// bir katılma butonuna dönüşür.
+//
+// Ders başlamadan önce öğretmen odaya doğrudan girer, öğrenci ise bekleme
+// odasına düşüp katılım isteği gönderir - bu yüzden buton metni role göre
+// değişiyor, öğrenciye "katıldın" izlenimi vermesin.
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ROOM_GRACE_PERIOD_MS } from "@/lib/status";
-
-const JOIN_WINDOW_MS = 5 * 60 * 1000;
+import { ROOM_EARLY_JOIN_MS, ROOM_GRACE_PERIOD_MS } from "@/lib/status";
 
 function formatRemaining(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -25,10 +27,12 @@ export function LessonCountdown({
   lessonId,
   startTime,
   endTime,
+  isTeacher = false,
 }: {
   lessonId: string;
   startTime: string;
   endTime: string;
+  isTeacher?: boolean;
 }) {
   // Date.now() sunucu/istemci hydration uyumsuzluğu yaratmasın diye başta null.
   const [now, setNow] = useState<number | null>(null);
@@ -44,7 +48,9 @@ export function LessonCountdown({
   const startMs = new Date(startTime).getTime();
   const endMs = new Date(endTime).getTime();
   const remaining = startMs - now;
-  const isJoinable = remaining <= JOIN_WINDOW_MS && now <= endMs + ROOM_GRACE_PERIOD_MS;
+  const isJoinable = remaining <= ROOM_EARLY_JOIN_MS && now <= endMs + ROOM_GRACE_PERIOD_MS;
+  // Ders henüz başlamadıysa öğrenci doğrudan giremez, istek gönderir.
+  const isEarlyForStudent = !isTeacher && remaining > 0;
 
   if (isJoinable) {
     return (
@@ -56,7 +62,7 @@ export function LessonCountdown({
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
         </span>
-        Derse Katıl
+        {isEarlyForStudent ? "Katılım İsteği Gönder" : "Derse Katıl"}
       </Link>
     );
   }

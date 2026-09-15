@@ -64,7 +64,12 @@ export default function TeacherDashboard() {
               <span className="font-semibold">{lesson.studentName}</span>
               <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime, tz)}</p>
             </div>
-            <LessonCountdown lessonId={lesson.id} startTime={lesson.startTime} endTime={lesson.endTime} />
+            <LessonCountdown
+              lessonId={lesson.id}
+              startTime={lesson.startTime}
+              endTime={lesson.endTime}
+              isTeacher
+            />
           </li>
         ))}
       </ul>
