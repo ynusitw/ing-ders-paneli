@@ -1,8 +1,10 @@
-// TODO: oturum varsa role göre /teacher veya /student'a yönlendir, yoksa /login göster.
-export default function HomePage() {
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <h1 className="text-2xl font-semibold">Ders Paneli</h1>
-    </main>
-  );
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/session";
+
+// Kok adres bir karsilama sayfasi degil, yonlendirme noktasi: oturum varsa
+// role gore panele, yoksa giris ekranina goturur.
+export default async function HomePage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  redirect(user.role === "TEACHER" ? "/teacher" : "/student");
 }
