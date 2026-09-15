@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { clientAuth } from "@/lib/firebase-client";
+import { NotificationBell } from "@/components/notification-bell";
 
 type Props = {
   fullName: string;
@@ -41,7 +42,9 @@ export function Header({ fullName }: Props) {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex justify-end border-b border-[var(--border)] bg-[var(--bg-base)]/60 p-3 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 flex items-center justify-end gap-1 border-b border-[var(--border)] bg-[var(--bg-base)]/60 p-3 backdrop-blur-xl">
+      <NotificationBell />
+
       <div ref={menuRef} className="relative">
         <button
           onClick={() => setOpen((o) => !o)}

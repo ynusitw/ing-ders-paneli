@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
+import { notify } from "@/lib/notifications";
+import { formatRange } from "@/lib/status";
 
 const createRequestSchema = z.object({
   slotId: z.string(),
@@ -61,8 +63,21 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     });
 
-    return { id: requestRef.id };
+    return {
+      id: requestRef.id,
+      teacherId: slotData.teacherId,
+      startTime: slotData.startTime,
+      endTime: slotData.endTime,
+    };
   });
 
-  return NextResponse.json(result, { status: 201 });
+  await notify({
+    userId: result.teacherId,
+    type: "REQUEST_CREATED",
+    title: "Yeni ders talebi",
+    body: `${user.fullName}, ${formatRange(result.startTime, result.endTime)} için ders talep etti.`,
+    href: "/teacher/requests",
+  });
+
+  return NextResponse.json({ id: result.id }, { status: 201 });
 }

@@ -4,6 +4,8 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
 import { getStudentLevelProgress } from "@/lib/level-progress";
+import { notify } from "@/lib/notifications";
+import { LEVEL_DESCRIPTION } from "@/lib/levels";
 
 const gradeSchema = z.object({
   score: z.number().int().min(0).max(100),
@@ -37,6 +39,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     gradedAt: now,
   });
 
+  await notify({
+    userId: assignment.studentId,
+    type: "ASSIGNMENT_GRADED",
+    title: "Ödevin değerlendirildi",
+    body: `"${assignment.title}" ödevinden ${body.score}/100 aldın.`,
+    href: "/student/assignments",
+  });
+
   const progress = await getStudentLevelProgress(assignment.studentId);
 
   if (progress.canPromote && progress.nextLevel) {
@@ -48,6 +58,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         levelUpdatedAt: now,
         levelHistory: FieldValue.arrayUnion({ level: progress.nextLevel, at: now }),
       });
+
+    await notify({
+      userId: assignment.studentId,
+      type: "LEVEL_UP",
+      title: `Seviye atladın: ${progress.nextLevel}`,
+      body: `Tebrikler! Artık ${progress.nextLevel} (${LEVEL_DESCRIPTION[progress.nextLevel]}) seviyesindesin.`,
+      href: "/student/assignments",
+    });
 
     return NextResponse.json({
       ok: true,

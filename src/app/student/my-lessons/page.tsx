@@ -53,18 +53,46 @@ function MaterialsList({ lessonId }: { lessonId: string }) {
 export default function MyLessonsPage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    const res = await fetch("/api/lessons");
+    if (res.ok) setLessons(await res.json());
+  }
 
   useEffect(() => {
-    fetch("/api/lessons")
-      .then((res) => res.json())
-      .then(setLessons);
+    load();
   }, []);
+
+  async function cancelLesson(id: string) {
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/lessons/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      });
+      if (!res.ok) {
+        setError((await res.json()).error ?? "Ders iptal edilemedi.");
+        return;
+      }
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <main className="fade-up mx-auto max-w-3xl p-8">
-      <h1 className="page-title mb-6">Yaklaşan Derslerim</h1>
+      <h1 className="page-title mb-6">Derslerim</h1>
 
-      {lessons.length === 0 && <p className="text-dim text-sm">Henüz onaylanmış dersin yok.</p>}
+      {error && <p className="glass-card mb-4 p-4 text-sm text-[var(--bad)]">{error}</p>}
+
+      {lessons.length === 0 && (
+        <p className="text-dim glass-card p-5 text-sm">Henüz onaylanmış dersin yok.</p>
+      )}
 
       <ul className="flex flex-col gap-2">
         {lessons.map((lesson) => (
@@ -93,6 +121,16 @@ export default function MyLessonsPage() {
                 >
                   {openId === lesson.id ? "Materyalleri gizle" : "Materyalleri göster"}
                 </button>
+                {lesson.status === "SCHEDULED" &&
+                  Date.now() <= new Date(lesson.endTime).getTime() && (
+                    <button
+                      onClick={() => cancelLesson(lesson.id)}
+                      disabled={busyId === lesson.id}
+                      className="btn btn-danger btn-sm"
+                    >
+                      İptal Et
+                    </button>
+                  )}
               </div>
             </div>
             {openId === lesson.id && (

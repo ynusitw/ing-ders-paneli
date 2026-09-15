@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
+import { notify } from "@/lib/notifications";
 
 const submitSchema = z.object({ submission: z.string().min(1) });
 
@@ -24,11 +25,25 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "Bu ödev değerlendirildi" }, { status: 409 });
   }
 
+  const assignment = snap.data()!;
+  const alreadySubmitted = assignment.status === "SUBMITTED";
+
   await ref.update({
     submission: body.submission.trim(),
     submittedAt: new Date().toISOString(),
     status: "SUBMITTED",
   });
+
+  // Teslimini guncelleyen ogrenci ogretmeni tekrar tekrar rahatsiz etmesin.
+  if (!alreadySubmitted) {
+    await notify({
+      userId: assignment.teacherId,
+      type: "ASSIGNMENT_SUBMITTED",
+      title: "Ödev teslim edildi",
+      body: `${user.fullName}, "${assignment.title}" ödevini teslim etti.`,
+      href: "/teacher/assignments",
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
+import { notify } from "@/lib/notifications";
+import { formatRange } from "@/lib/status";
 
 const decisionSchema = z.object({
   decision: z.enum(["APPROVED", "REJECTED"]),
@@ -52,12 +54,32 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         status: "SCHEDULED",
         createdAt: new Date().toISOString(),
       });
-      return { lessonId: lessonRef.id };
+      return { lessonId: lessonRef.id, request: requestData };
     }
 
     tx.update(slotRef, { status: "OPEN" });
-    return { lessonId: null };
+    return { lessonId: null, request: requestData };
   });
 
-  return NextResponse.json(result);
+  const { request } = result;
+  const range = formatRange(request.startTime, request.endTime);
+  await notify(
+    body.decision === "APPROVED"
+      ? {
+          userId: request.studentId,
+          type: "REQUEST_APPROVED",
+          title: "Ders talebin onaylandı",
+          body: `${request.teacherName} ile ${range} dersin planlandı.`,
+          href: "/student/my-lessons",
+        }
+      : {
+          userId: request.studentId,
+          type: "REQUEST_REJECTED",
+          title: "Ders talebin reddedildi",
+          body: `${request.teacherName}, ${range} talebini reddetti.`,
+          href: "/student/my-requests",
+        }
+  );
+
+  return NextResponse.json({ lessonId: result.lessonId });
 }

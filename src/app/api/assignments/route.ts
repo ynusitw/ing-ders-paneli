@@ -3,6 +3,7 @@ import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 import { getCurrentUser } from "@/lib/session";
 import { normalizeLevel } from "@/lib/levels";
+import { notify } from "@/lib/notifications";
 
 const createAssignmentSchema = z.object({
   studentId: z.string().min(1),
@@ -73,6 +74,14 @@ export async function POST(req: NextRequest) {
     feedback: null,
     gradedAt: null,
     createdAt: new Date().toISOString(),
+  });
+
+  await notify({
+    userId: body.studentId,
+    type: "ASSIGNMENT_CREATED",
+    title: "Yeni ödev",
+    body: `${user.fullName} sana "${body.title.trim()}" ödevini verdi.`,
+    href: "/student/assignments",
   });
 
   return NextResponse.json({ id: ref.id }, { status: 201 });

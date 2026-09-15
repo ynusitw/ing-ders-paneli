@@ -14,40 +14,94 @@ type Lesson = {
 
 export default function TeacherLessonsPage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    const res = await fetch("/api/lessons");
+    if (res.ok) setLessons(await res.json());
+  }
 
   useEffect(() => {
-    fetch("/api/lessons")
-      .then((res) => res.json())
-      .then(setLessons);
+    load();
   }, []);
+
+  async function updateStatus(id: string, status: "COMPLETED" | "CANCELLED") {
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/lessons/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        setError((await res.json()).error ?? "İşlem tamamlanamadı.");
+        return;
+      }
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <main className="fade-up mx-auto max-w-3xl p-8">
-      <h1 className="page-title mb-6">Onaylanan Dersler</h1>
+      <h1 className="page-title mb-1">Onaylanan Dersler</h1>
+      <p className="page-subtitle mb-7">
+        Ders bittiğinde tamamlandı olarak işaretle; planı değişirse iptal edebilirsin.
+      </p>
 
-      {lessons.length === 0 && <p className="text-dim text-sm">Henüz onaylanan ders yok.</p>}
+      {error && <p className="glass-card mb-4 p-4 text-sm text-[var(--bad)]">{error}</p>}
 
-      <ul className="flex flex-col gap-2">
-        {lessons.map((lesson) => (
-          <li key={lesson.id} className="flex items-center justify-between glass-card p-4">
-            <div>
-              <span className="font-medium">{lesson.studentName}</span>
-              <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
-              <span
-                className={`badge mt-1 ${LESSON_STATUS_CLASS[lesson.status]}`}
-              >
-                {LESSON_STATUS_LABEL[lesson.status]}
-              </span>
-            </div>
-            {lesson.status === "SCHEDULED" && isRoomJoinable(lesson) && (
-              <LessonCountdown
-                lessonId={lesson.id}
-                startTime={lesson.startTime}
-                endTime={lesson.endTime}
-              />
-            )}
-          </li>
-        ))}
+      {lessons.length === 0 && (
+        <p className="text-dim glass-card p-5 text-sm">Henüz onaylanan ders yok.</p>
+      )}
+
+      <ul className="flex flex-col gap-3">
+        {lessons.map((lesson) => {
+          const started = Date.now() >= new Date(lesson.startTime).getTime();
+          const ended = Date.now() > new Date(lesson.endTime).getTime();
+          return (
+            <li key={lesson.id} className="glass-card flex flex-wrap items-center justify-between gap-3 p-4">
+              <div className="min-w-0">
+                <span className="font-semibold">{lesson.studentName}</span>
+                <p className="text-dim text-sm">{formatRange(lesson.startTime, lesson.endTime)}</p>
+                <span className={`badge mt-1 ${LESSON_STATUS_CLASS[lesson.status]}`}>
+                  {LESSON_STATUS_LABEL[lesson.status]}
+                </span>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                {lesson.status === "SCHEDULED" && isRoomJoinable(lesson) && (
+                  <LessonCountdown
+                    lessonId={lesson.id}
+                    startTime={lesson.startTime}
+                    endTime={lesson.endTime}
+                  />
+                )}
+                {lesson.status === "SCHEDULED" && started && (
+                  <button
+                    onClick={() => updateStatus(lesson.id, "COMPLETED")}
+                    disabled={busyId === lesson.id}
+                    className="btn btn-success btn-sm"
+                  >
+                    Tamamlandı
+                  </button>
+                )}
+                {lesson.status === "SCHEDULED" && !ended && (
+                  <button
+                    onClick={() => updateStatus(lesson.id, "CANCELLED")}
+                    disabled={busyId === lesson.id}
+                    className="btn btn-danger btn-sm"
+                  >
+                    İptal Et
+                  </button>
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </main>
   );
